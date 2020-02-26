@@ -1,0 +1,7 @@
+C:\Users\Nathan\source\repos\pez\pez\bin\Debug\pez.exe.config
+C:\Users\Nathan\source\repos\pez\pez\bin\Debug\pez.exe
+C:\Users\Nathan\source\repos\pez\pez\bin\Debug\pez.pdb
+C:\Users\Nathan\source\repos\pez\pez\obj\Debug\pez.csprojAssemblyReference.cache
+C:\Users\Nathan\source\repos\pez\pez\obj\Debug\pez.csproj.CoreCompileInputs.cache
+C:\Users\Nathan\source\repos\pez\pez\obj\Debug\pez.exe
+C:\Users\Nathan\source\repos\pez\pez\obj\Debug\pez.pdb

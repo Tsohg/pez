@@ -55,7 +55,7 @@ namespace pez.lex
             StringBuilder sb = new StringBuilder();
 
             if (!HasNextChar())
-                return new Lexeme(PezLexType.termin, eof, offset);
+                return new Lexeme(PezLexType.termin, eof);
 
             //whitespace is first because i expect to read in a stream of \t when if statements pop up to determine scope.
             if (char.IsWhiteSpace(file[offset])) //we count \t as a scope token. \r\n is our terminating token.
@@ -63,10 +63,11 @@ namespace pez.lex
                 switch (file[offset])
                 {
                     case '\t':
-                        lex = new Lexeme(PezLexType.scoper, ";t", offset); // ; will be my marker for escape characters. ;t = \t but easier to recognize in output. ;rn = \r\n
+                        lex = new Lexeme(PezLexType.scoper, ";t"); // ; will be my marker for escape characters. ;t = \t but easier to recognize in output. ;rn = \r\n
+                        offset++;
                         return lex;
                     case '\r': //\r\n
-                        lex = new Lexeme(PezLexType.termin, ";rn", offset);
+                        lex = new Lexeme(PezLexType.termin, ";rn");
                         if (HasNextChar(1) && file[offset + 1] == '\n')
                             offset++; //skip \n
                         return lex;
@@ -82,7 +83,7 @@ namespace pez.lex
                     sb.Append(file[offset]);
                     offset++;
                 }
-                lex = new Lexeme(PezLexType.id, sb.ToString(), offset);
+                lex = new Lexeme(PezLexType.id, sb.ToString());
                 return lex;
             }
             else if (char.IsDigit(file[offset])) //read until space as integer
@@ -92,7 +93,7 @@ namespace pez.lex
                     sb.Append(file[offset]);
                     offset++;
                 }
-                lex = new Lexeme(PezLexType._int, sb.ToString(), offset);
+                lex = new Lexeme(PezLexType._int, sb.ToString());
                 return lex;
             }
             else if ((41 < file[offset]) && (file[offset] < 48) || file[offset] == '=') //42 - 47 are basic ops
@@ -102,7 +103,7 @@ namespace pez.lex
                     sb.Append(file[offset]);
                     offset++;
                 }
-                lex = new Lexeme(PezLexType.op, sb.ToString(), offset);
+                lex = new Lexeme(PezLexType.op, sb.ToString());
                 return lex;
             }
             else if (file[offset] == '#')//# will be my comment symbol much like R language.
@@ -112,14 +113,14 @@ namespace pez.lex
                 {
                     offset++;
                     if (!HasNextChar())
-                        return new Lexeme(PezLexType.termin, eof, offset);
+                        return new Lexeme(PezLexType.termin, eof);
                     if (file[offset] == '\r')
                     {
                         offset++;
                         if (HasNextChar() && file[offset] == '\n')
                         {
                             offset++;
-                            return new Lexeme(PezLexType.termin, ";rn", offset);
+                            return new Lexeme(PezLexType.termin, ";rn");
                         }
                         else throw new Exception("Lexer:Next:: ;r not followed by ;n. Pez requires Windows CRLF line endings to function.");
                     }

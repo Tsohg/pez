@@ -23,15 +23,11 @@ namespace pez.lex
     {
         public PezLexType LType { get; private set; }
         public string token { get; private set; }
-        public int line { get; private set; }
-        public int pos { get; private set; }
 
-        public Lexeme(PezLexType type, string token, int pos)
+        public Lexeme(PezLexType type, string token)
         {
             LType = type;
             this.token = token;
-            this.line = line;
-            this.pos = pos;
         }
 
         public override string ToString()

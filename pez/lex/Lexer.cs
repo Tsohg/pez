@@ -9,66 +9,38 @@ namespace pez.lex
     //A more complex lexer will probably involve lexer states.
     //A lexer state would simply alter how tokens are delimited in the middle of parsing tokens.
 
+    //This code heavily refers to Modern Compiler Desing 2nd ed.
+
     /// <summary>
     /// Turns source into lexemes/tokens.
     /// </summary>
     class Lexer
     {
-        private string file;
-        private PezSym sym;
-
-        public int Offset { get; private set; }
-        public int LineNum { get; private set; }
-        public string Current { get; private set; } //Last lexeme found by Next.
-        public Lexeme[] LexStream { get; private set; }
+        private readonly string file;
+        private readonly string eof = "EOF"; //end of file token
+        private int offset;
 
         public Lexer(string file)
         {
             this.file = file;
-            sym = new PezSym();
-            Offset = 0;
-            LineNum = 1;
-            LexStream = Start();
+            offset = 0;
         }
 
         /// <summary>
         /// Converts a file to an array of lexemes.
         /// </summary>
         /// <returns></returns>
-        private Lexeme[] Start()
+        public Lexeme[] GetLexStream()
         {
             List<Lexeme> lexemes = new List<Lexeme>();
 
-            while(HasNext())
+            while(true)
             {
-                string token = Next();
-
-                while (token == "") //skip blanks. kinda dangerous.
-                    if (HasNext())
-                        token = Next();
-
-                Lexeme l = null;
-
-                if (sym.ExpectType(token))
-                    l = new Lexeme(PezLexType.type, token);
-                else if (sym.ExpectIdentifier(token))
-                    l = new Lexeme(PezLexType.id, token);
-                else if (sym.ExpectSeparator(token))
-                    l = new Lexeme(PezLexType.sep, token);
-                else if (sym.ExpectTerminator(token))
-                    l = new Lexeme(PezLexType.termin, token);
-                else if (sym.ExpectOperator(token))
-                    l = new Lexeme(PezLexType.op, token);
-                else if (sym.ExpectInteger(token))
-                    l = new Lexeme(PezLexType._int, token);
-
-                if (l == null) throw new Exception("Lexer:Start:: Null Lexeme.");
-
-                lexemes.Add(l);
+                Lexeme lex = Next();
+                lexemes.Add(lex);
+                if (lex.token == eof)
+                    break;
             }
-            if (lexemes == null) throw new Exception("Lexer:Start:: Null Lexemes List.");
-            Lexeme addedTermin = new Lexeme(PezLexType.termin, ";"); //adding a terminator here to signify end of file.
-            lexemes.Add(addedTermin);
             return lexemes.ToArray();
         }
         
@@ -76,41 +48,95 @@ namespace pez.lex
         /// Returns the next lexeme/token in the file based on a list of separators defined in PezSym.
         /// </summary>
         /// <returns>The next lexeme/token in a file.</returns>
-        private string Next() //remove \r\n terminators.
+        private Lexeme Next() //remove \r\n terminators.
         {
-            StringBuilder result = new StringBuilder();
+            Lexeme lex; 
 
-            if(file[Offset] == sym.terminators[0][0])
-            {
-                result.Append(';'); //replace \r\n with something easier to work with and notice, but still retain the style of \r\n being a terminator.
-                Offset += 2;
-                return result.ToString();
-            }
+            StringBuilder sb = new StringBuilder();
 
-            //sep[0] = ' '
-            while (HasNext() && file[Offset] != sym.separators[0]) //lex on spacebar, \r\n for now. perhaps full array of characters later.
+            if (!HasNextChar())
+                return new Lexeme(PezLexType.termin, eof, offset);
+
+            //whitespace is first because i expect to read in a stream of \t when if statements pop up to determine scope.
+            if (char.IsWhiteSpace(file[offset])) //we count \t as a scope token. \r\n is our terminating token.
             {
-                if (file[Offset] == sym.terminators[0][0]) // \r then return result for now.
-                    return result.ToString();
-                else
+                switch (file[offset])
                 {
-                    result.Append(file[Offset]);
-                    Offset++;
+                    case '\t':
+                        lex = new Lexeme(PezLexType.scoper, ";t", offset); // ; will be my marker for escape characters. ;t = \t but easier to recognize in output. ;rn = \r\n
+                        return lex;
+                    case '\r': //\r\n
+                        lex = new Lexeme(PezLexType.termin, ";rn", offset);
+                        if (HasNextChar(1) && file[offset + 1] == '\n')
+                            offset++; //skip \n
+                        return lex;
+                    default:
+                        offset++;
+                        return Next(); //if bugs happen, it's probably here
                 }
             }
-
-            Offset++; //on spacebar so we go to next character.
-            Current = result.ToString();
-            return result.ToString();
+            else if (char.IsLetter(file[offset])) //read until space as an identifier or type name. note: ids can be types.
+            {
+                while (HasNextChar() && char.IsLetterOrDigit(file[offset]))
+                {
+                    sb.Append(file[offset]);
+                    offset++;
+                }
+                lex = new Lexeme(PezLexType.id, sb.ToString(), offset);
+                return lex;
+            }
+            else if (char.IsDigit(file[offset])) //read until space as integer
+            {
+                while (HasNextChar() && char.IsDigit(file[offset]))
+                {
+                    sb.Append(file[offset]);
+                    offset++;
+                }
+                lex = new Lexeme(PezLexType._int, sb.ToString(), offset);
+                return lex;
+            }
+            else if ((41 < file[offset]) && (file[offset] < 48) || file[offset] == '=') //42 - 47 are basic ops
+            {
+                while (HasNextChar() && (41 < file[offset]) && (file[offset] < 48) || file[offset] == '=') //(41 < c < 48) //TODO: Move assignment to boolean lex for expressions later.
+                {
+                    sb.Append(file[offset]);
+                    offset++;
+                }
+                lex = new Lexeme(PezLexType.op, sb.ToString(), offset);
+                return lex;
+            }
+            else if (file[offset] == '#')//# will be my comment symbol much like R language.
+            {
+                //ignore the rest of the line by finding \r\n then going offset++ then return next()
+                while (true)
+                {
+                    offset++;
+                    if (!HasNextChar())
+                        return new Lexeme(PezLexType.termin, eof, offset);
+                    if (file[offset] == '\r')
+                    {
+                        offset++;
+                        if (HasNextChar() && file[offset] == '\n')
+                        {
+                            offset++;
+                            return new Lexeme(PezLexType.termin, ";rn", offset);
+                        }
+                        else throw new Exception("Lexer:Next:: ;r not followed by ;n. Pez requires Windows CRLF line endings to function.");
+                    }
+                }
+            }
+            else throw new Exception("Lexer:Next:: Unidentified token encountered at offset: " + offset);
         }
+        //40, 41 = ( )   
+        //60-62 boolean/assignment:  < = >
 
         /// <summary>
         /// Checks to see if there is a next lexeme or not based on offset vs file length.
         /// </summary>
         /// <returns></returns>
-        private bool HasNext()
+        private bool HasNextChar(int dist = 0)
         {
-            if (Offset > file.Length - 1)
+            if (offset + dist > file.Length - 1)
                 return false;
             else return true;
         }

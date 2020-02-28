@@ -26,7 +26,7 @@ namespace pez.lex
             lex = new Lexer(System.IO.File.ReadAllText(filePath));
 
             //debug
-            foreach (Lexeme l in lex.LexStream)
+            foreach (Lexeme l in lex.GetLexStream())
                 Console.Out.WriteLine(l.ToString());
             Console.Read();
         }

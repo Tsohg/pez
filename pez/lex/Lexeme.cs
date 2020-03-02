@@ -8,7 +8,7 @@ namespace pez.lex
 {
     public enum PezLexType
     {
-        id,
+        id, //identifiers can be a lot of different things.
         _int,
         op,
         sep,

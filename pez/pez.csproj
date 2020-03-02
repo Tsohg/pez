@@ -43,18 +43,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ast\AST.cs" />
-    <Compile Include="ast\IAST.cs" />
+    <Compile Include="ast\AstNode.cs" />
     <Compile Include="lex\Lexeme.cs" />
     <Compile Include="lex\Lexer.cs" />
-    <Compile Include="lex\Parser.cs" />
-    <Compile Include="ast\PNode.cs" />
+    <Compile Include="ast\Parser.cs" />
     <Compile Include="dispenser\cola\Dependencies.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="types\BaseType.cs" />
-    <Compile Include="types\PezInt.cs" />
-    <Compile Include="types\PezText.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

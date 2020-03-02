@@ -57,6 +57,8 @@ namespace pez.lex
             if (!HasNextChar())
                 return new Lexeme(PezLexType.termin, eof);
 
+            //TODO: Handle ( ) then handle ( ) in Parser.ShuntingYard
+
             //whitespace is first because i expect to read in a stream of \t when if statements pop up to determine scope.
             if (char.IsWhiteSpace(file[offset])) //we count \t as a scope token. \r\n is our terminating token.
             {

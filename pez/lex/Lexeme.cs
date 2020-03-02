@@ -32,7 +32,7 @@ namespace pez.lex
 
         public override string ToString()
         {
-            return "" + Enum.GetName(typeof(PezLexType), LType) + ": " + token;
+            return "{" + Enum.GetName(typeof(PezLexType), LType) + ": " + token + "}";
         }
     }
 }

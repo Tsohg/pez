@@ -60,11 +60,16 @@ namespace pez.ast
                 var linq = lexStream.Skip(offset).TakeWhile(termin => termin.LType != PezLexType.termin);
                 Lexeme[] subset = linq.ToArray();
 
-                int scope = GetScope(subset);
-
                 //set offset to next token in the lex stream.
                 offset += subset.Length + 1;
 
+                if (subset.Length == 0)
+                    continue;
+
+                int scope = GetScope(subset);
+
+                if (scope == subset.Length)
+                    continue;
                 //ast subset
                 //  apply shunting yard
                 Queue<Lexeme> postfixNodes = ShuntingYard(subset.ToArray(), scope);
@@ -208,10 +213,11 @@ namespace pez.ast
         /// <returns></returns>
         private int GetScope(Lexeme[] stream)
         {
-            for (int i = 0; i < stream.Length; i++)
+            int i = 0;
+            for (; i < stream.Length; i++)
                 if (!(stream[i].LType == PezLexType.scoper))
                     return i;
-            return 0;
+            return i;
         }
     }
 }

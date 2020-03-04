@@ -1,4 +1,17 @@
 ﻿a = b + c * d
+								
+		
+				
+					 
 if x = y
 	z = 32 #results in a weird tree if there is a space in between numbers.
+
+
+
+
+
+
+																																	                               
+
+
 i = j*b+3 -2 * 8 + 23 / 32

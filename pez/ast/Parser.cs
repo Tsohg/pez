@@ -25,6 +25,13 @@ namespace pez.ast
         private Lexer lexer;
         private List<Tuple<AstNode, int>> astAndScope; //if the first node of the ast = "if", then we expect the scope of the preceding statements to be (if).scope+1. if statement body ends on scope-1.
 
+        private readonly List<string> keywords = new List<string>()
+        {
+            "if",
+            "loopwhile",
+            "loopfor"
+        };
+
         private Dictionary<string, int> precedence = new Dictionary<string, int>()
         {
             { "=", 0 }, //assignment operator
@@ -48,20 +55,19 @@ namespace pez.ast
                 //convert individual stream to ast
                 //write ast to C and repeat
 
-                int scope = GetScope(lexStream);
-                offset += scope;
-
                 //makes a subset of the lexstream from offset->terminator token. offset is the first token that isn't scoped with \t
 
                 var linq = lexStream.Skip(offset).TakeWhile(termin => termin.LType != PezLexType.termin);
                 Lexeme[] subset = linq.ToArray();
+
+                int scope = GetScope(subset);
 
                 //set offset to next token in the lex stream.
                 offset += subset.Length + 1;
 
                 //ast subset
                 //  apply shunting yard
-                Queue<Lexeme> postfixNodes = ShuntingYard(subset.ToArray());
+                Queue<Lexeme> postfixNodes = ShuntingYard(subset.ToArray(), scope);
 
                 //apply algorithm to transform the output queue to an AST.
 
@@ -82,10 +88,19 @@ namespace pez.ast
 
                 while (operands.Count > 0 || operators.Count > 0)
                 {
+                    if(keywords.Contains(operands.Peek().token)) //if we encounter a keyword like if/while.
+                    {
+                        node.data = operands.Dequeue();
+                        root = node;
+                        node.right = new AstNode();
+                        node = node.right;
+                        continue;
+                    }
                     if (node.data == null && operators.Count > 0)
                     {
                         node.data = operators.Pop();
-                        root = node;
+                        if (root == null)
+                            root = node;
                     }
                     if(node.left == null && operands.Count > 0)
                     {
@@ -107,12 +122,17 @@ namespace pez.ast
 
                 if (root == null) throw new Exception("Null root.");
 
+                //search for weird trees with a left node but no right node. there should always be a right node if there is a left and vice versa.
+                AstNode test = root;
+                TestAST(test);
+
                 astAndScope.Add(new Tuple<AstNode, int>(root, scope)); //associates a statement with it's scope.
             }
             //debug
             //foreach (Lexeme lex in lexer.GetLexStream())
             //    Console.Out.WriteLine(lex.ToString());
             //Console.Read();
+            Console.Out.WriteLine("end?");
         }
 
         /// <summary>
@@ -120,12 +140,12 @@ namespace pez.ast
         /// </summary>
         /// <param name="subset"></param>
         /// <returns></returns>
-        private Queue<Lexeme> ShuntingYard(Lexeme[] subset)
+        private Queue<Lexeme> ShuntingYard(Lexeme[] subset, int scope)
         {
             //Dijkstra's Shunting Yard Algorithm
             Queue<Lexeme> output = new Queue<Lexeme>();
             Stack<Lexeme> ops = new Stack<Lexeme>();
-            int offset = 0;
+            int offset = 0 + scope; //skip scopers
 
             while(offset < subset.Length)
             {
@@ -152,6 +172,33 @@ namespace pez.ast
             }
 
             return output;
+        }
+
+        private void TestAST(AstNode root)
+        {
+            bool error = false;
+
+            //visit self
+            if (root.data == null)
+                error = true;
+
+            while (true)
+            {
+                //visit left and right
+                if (root.left == null && root.right == null) //if both are null, we hit the last node.
+                    break;
+
+                if (root.right == null) //if one is null, we have a weird tree.
+                    error = true;
+
+                if (root.left == null && !keywords.Contains(root.data.token)) //another keyword test.
+                    error = true;
+
+                if (error) throw new Exception("Weird Tree error on line: " + (astAndScope.Count + 1));
+
+                root = root.right;
+            }
+            if (error) throw new Exception("Weird Tree error on line: " + astAndScope.Count + 1);
         }
 
         /// <summary>

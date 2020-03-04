@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using pez.ast;
+using System.IO;
 
 namespace pez
 {
@@ -11,7 +12,7 @@ namespace pez
     {
         static void Main(string[] args) //pez file -c //for C dispensing on command line.
         {
-            Parser p = new Parser(@"C:\Users\Nathan\Desktop\pez1");
+            Parser p = new Parser(@"C:\Users\Nathan\source\repos\pez\pez\source\pez1.txt");
         }
     }
 }

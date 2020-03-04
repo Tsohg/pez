@@ -12,10 +12,5 @@ namespace pez.ast
         public Lexeme data;
         public AstNode left;
         public AstNode right;
-
-        public AstNode(Lexeme data)
-        {
-            this.data = data;
-        }
     }
 }

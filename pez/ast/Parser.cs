@@ -23,6 +23,7 @@ namespace pez.ast
     class Parser
     {
         private Lexer lexer;
+        private List<Tuple<AstNode, int>> astAndScope; //if the first node of the ast = "if", then we expect the scope of the preceding statements to be (if).scope+1. if statement body ends on scope-1.
 
         private Dictionary<string, int> precedence = new Dictionary<string, int>()
         {
@@ -37,10 +38,12 @@ namespace pez.ast
         public Parser(string filePath)
         {
             lexer = new Lexer(System.IO.File.ReadAllText(filePath));
+            astAndScope = new List<Tuple<AstNode, int>>();
+
             Lexeme[] lexStream = lexer.GetLexStream();
             int offset = 0;
 
-            while (offset < lexStream.Length)
+            while (offset < lexStream.Length) //per statement
             {
                 //convert individual stream to ast
                 //write ast to C and repeat
@@ -54,21 +57,57 @@ namespace pez.ast
                 Lexeme[] subset = linq.ToArray();
 
                 //set offset to next token in the lex stream.
-                offset += subset.Length;
+                offset += subset.Length + 1;
 
                 //ast subset
                 //  apply shunting yard
                 Queue<Lexeme> postfixNodes = ShuntingYard(subset.ToArray());
 
                 //apply algorithm to transform the output queue to an AST.
-                //TODO:  push operators to stack and operands to queue
 
-                //debug
-                while (postfixNodes.Count > 0)
-                    Console.Out.Write(postfixNodes.Dequeue() + " ");
-                Console.Read();
+                Stack<Lexeme> operators = new Stack<Lexeme>();
+                Queue<Lexeme> operands = new Queue<Lexeme>();
 
-                
+                while(postfixNodes.Count > 0)
+                {
+                    Lexeme l = postfixNodes.Dequeue();
+                    if (l.LType == PezLexType.op)
+                        operators.Push(l);
+                    else
+                        operands.Enqueue(l);
+                }
+
+                AstNode node = new AstNode();
+                AstNode root = null;
+
+                while (operands.Count > 0 || operators.Count > 0)
+                {
+                    if (node.data == null && operators.Count > 0)
+                    {
+                        node.data = operators.Pop();
+                        root = node;
+                    }
+                    if(node.left == null && operands.Count > 0)
+                    {
+                        node.left = new AstNode();
+                        node.left.data = operands.Dequeue();
+                    }
+                    if(node.right == null && operators.Count > 0)
+                    {
+                        node.right = new AstNode();
+                        node.right.data = operators.Pop();
+                    }
+                    else if(node.right == null && operands.Count > 0)
+                    {
+                        node.right = new AstNode();
+                        node.right.data = operands.Dequeue();
+                    }
+                    node = node.right;
+                }
+
+                if (root == null) throw new Exception("Null root.");
+
+                astAndScope.Add(new Tuple<AstNode, int>(root, scope)); //associates a statement with it's scope.
             }
             //debug
             //foreach (Lexeme lex in lexer.GetLexStream())

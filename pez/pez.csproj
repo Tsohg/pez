@@ -43,11 +43,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ast\AstNode.cs" />
+    <Compile Include="ast\Node.cs" />
+    <Compile Include="dispenser\BaseTranslate.cs" />
+    <Compile Include="dispenser\cola\TranslateC.cs" />
     <Compile Include="lex\Lexeme.cs" />
     <Compile Include="lex\Lexer.cs" />
     <Compile Include="ast\Parser.cs" />
-    <Compile Include="dispenser\cola\Dependencies.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

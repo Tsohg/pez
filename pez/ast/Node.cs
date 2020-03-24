@@ -7,10 +7,10 @@ using pez.lex;
 
 namespace pez.ast
 {
-    class AstNode
+    class Node
     {
         public Lexeme data;
-        public AstNode left;
-        public AstNode right;
+        public Node left;
+        public Node right;
     }
 }

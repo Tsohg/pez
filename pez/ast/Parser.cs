@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using pez.lex;
+using pez.dispenser.cola;
 using System.IO;
 
 namespace pez.ast
@@ -23,7 +24,7 @@ namespace pez.ast
     class Parser
     {
         private Lexer lexer;
-        private List<Tuple<AstNode, int>> astAndScope; //if the first node of the ast = "if", then we expect the scope of the preceding statements to be (if).scope+1. if statement body ends on scope-1.
+        private List<Tuple<Node, int>> astAndScope; //if the first node of the ast = "if", then we expect the scope of the preceding statements to be (if).scope+1. if statement body ends on scope-1.
 
         private readonly List<string> keywords = new List<string>()
         {
@@ -42,10 +43,10 @@ namespace pez.ast
         };
 
         //Note: only works with left->right assosiativity. for division/subtraction would probably be a good idea to swap the operands
-        public Parser(string filePath)
+        public Parser(string filePath, string outPath, string lang)
         {
             lexer = new Lexer(System.IO.File.ReadAllText(filePath));
-            astAndScope = new List<Tuple<AstNode, int>>();
+            astAndScope = new List<Tuple<Node, int>>();
 
             Lexeme[] lexStream = lexer.GetLexStream();
             int offset = 0;
@@ -70,12 +71,14 @@ namespace pez.ast
 
                 if (scope == subset.Length)
                     continue;
+
                 //ast subset
                 //  apply shunting yard
                 Queue<Lexeme> postfixNodes = ShuntingYard(subset.ToArray(), scope);
 
                 //apply algorithm to transform the output queue to an AST.
 
+                //my own algorithm for converting a postfix expression to an ast.
                 Stack<Lexeme> operators = new Stack<Lexeme>();
                 Queue<Lexeme> operands = new Queue<Lexeme>();
 
@@ -88,8 +91,8 @@ namespace pez.ast
                         operands.Enqueue(l);
                 }
 
-                AstNode node = new AstNode();
-                AstNode root = null;
+                Node node = new Node();
+                Node root = null;
 
                 while (operands.Count > 0 || operators.Count > 0)
                 {
@@ -97,7 +100,7 @@ namespace pez.ast
                     {
                         node.data = operands.Dequeue();
                         root = node;
-                        node.right = new AstNode();
+                        node.right = new Node();
                         node = node.right;
                         continue;
                     }
@@ -109,17 +112,17 @@ namespace pez.ast
                     }
                     if(node.left == null && operands.Count > 0)
                     {
-                        node.left = new AstNode();
+                        node.left = new Node();
                         node.left.data = operands.Dequeue();
                     }
                     if(node.right == null && operators.Count > 0)
                     {
-                        node.right = new AstNode();
+                        node.right = new Node();
                         node.right.data = operators.Pop();
                     }
                     else if(node.right == null && operands.Count > 0)
                     {
-                        node.right = new AstNode();
+                        node.right = new Node();
                         node.right.data = operands.Dequeue();
                     }
                     node = node.right;
@@ -128,16 +131,25 @@ namespace pez.ast
                 if (root == null) throw new Exception("Null root.");
 
                 //search for weird trees with a left node but no right node. there should always be a right node if there is a left and vice versa.
-                AstNode test = root;
+                Node test = root;
                 TestAST(test);
 
-                astAndScope.Add(new Tuple<AstNode, int>(root, scope)); //associates a statement with it's scope.
+                astAndScope.Add(new Tuple<Node, int>(root, scope)); //associates a statement with it's scope.
             }
             //debug
             //foreach (Lexeme lex in lexer.GetLexStream())
             //    Console.Out.WriteLine(lex.ToString());
             //Console.Read();
-            Console.Out.WriteLine("end?");
+            //Console.Out.WriteLine("end?");
+            switch (lang)
+            {
+                case "c":
+                    TranslateC trc = new TranslateC(astAndScope, outPath);
+                    trc.Translate();
+                    break;
+                default:
+                    throw new Exception("Language is either not supported or invalid language argument to pez. Example: pez inFilePath outFilePath c");
+            }
         }
 
         /// <summary>
@@ -179,7 +191,7 @@ namespace pez.ast
             return output;
         }
 
-        private void TestAST(AstNode root)
+        private void TestAST(Node root)
         {
             bool error = false;
 

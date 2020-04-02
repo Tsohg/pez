@@ -88,6 +88,7 @@ namespace pez.ast
                 //apply algorithm to transform the output queue to an AST.
 
                 //my own algorithm for converting a postfix expression to an ast.
+                //TODO: bugfix this algorithm.
                 Stack<Lexeme> operators = new Stack<Lexeme>();
                 Queue<Lexeme> operands = new Queue<Lexeme>();
 

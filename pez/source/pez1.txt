@@ -1,5 +1,5 @@
-﻿x = 1
-y = 1
+﻿x = 2*3
+y = 1+2*3-4 #Bugged expression tree.
 
 if x == y
 	z = 32 #results in a weird tree if there is a space in between numbers.

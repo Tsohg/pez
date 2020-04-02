@@ -18,7 +18,7 @@ namespace pez.ast
      * I should define lexemes as symbols to expect a certain lexical structure.
      * 
      * 	https://en.wikipedia.org/wiki/Shunting-yard_algorithm
-     * 	Modifying the shunting yard algorithm to create an AST.
+     * 	Uses the shunting yard algorithm to put the expression into postfix. then using my own algorithm, convert the output of shunting yard into an ast.
      */
 
     class Parser
@@ -29,17 +29,26 @@ namespace pez.ast
         private readonly List<string> keywords = new List<string>()
         {
             "if",
-            "loopwhile",
-            "loopfor"
+            "lpw", //loop while
+            "lpf", //loop for
+            "else",
         };
 
         private Dictionary<string, int> precedence = new Dictionary<string, int>()
         {
             { "=", 0 }, //assignment operator
-            { "+", 1 },
-            { "-", 1 },
-            { "*", 2 },
-            { "/", 2 }
+
+            { "==", 1 }, //boolean operators
+            { "!=", 1 },
+            { ">", 1 },
+            { ">=", 1 },
+            { "<", 1 },
+            { "<=", 1 },
+
+            { "+", 2 }, //mathematical operators
+            { "-", 2 },
+            { "*", 3 },
+            { "/", 3 }
         };
 
         //Note: only works with left->right assosiativity. for division/subtraction would probably be a good idea to swap the operands
@@ -100,30 +109,39 @@ namespace pez.ast
                     {
                         node.data = operands.Dequeue();
                         root = node;
+                        if (node.data.token == "else") //a 1 line else statement. break loop and return.
+                            break;
                         node.right = new Node();
+                        node.right.prev = node;
                         node = node.right;
                         continue;
                     }
+
                     if (node.data == null && operators.Count > 0)
                     {
                         node.data = operators.Pop();
                         if (root == null)
                             root = node;
                     }
+
                     if(node.left == null && operands.Count > 0)
                     {
                         node.left = new Node();
                         node.left.data = operands.Dequeue();
+                        node.left.prev = node;
                     }
+
                     if(node.right == null && operators.Count > 0)
                     {
                         node.right = new Node();
                         node.right.data = operators.Pop();
+                        node.right.prev = node;
                     }
                     else if(node.right == null && operands.Count > 0)
                     {
                         node.right = new Node();
                         node.right.data = operands.Dequeue();
+                        node.right.prev = node;
                     }
                     node = node.right;
                 }

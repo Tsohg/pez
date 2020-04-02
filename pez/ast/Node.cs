@@ -12,5 +12,6 @@ namespace pez.ast
         public Lexeme data;
         public Node left;
         public Node right;
+        public Node prev;
     }
 }

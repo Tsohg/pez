@@ -19,8 +19,8 @@ namespace pez.dispenser
     /// </summary>
     abstract class BaseTranslate
     {
-        private List<Tuple<Node, int>> astAndScope;
-        private string outPath;
+        protected List<Tuple<Node, int>> astAndScope;
+        protected string outPath;
 
         public BaseTranslate(List<Tuple<Node, int>> astAndScope, string outPath)
         {

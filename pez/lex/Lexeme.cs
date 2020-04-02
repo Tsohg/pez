@@ -21,8 +21,8 @@ namespace pez.lex
     /// </summary>
     class Lexeme
     {
-        public PezLexType LType { get; private set; }
-        public string token { get; private set; }
+        public PezLexType LType { get; set; }
+        public string token { get; set; }
 
         public Lexeme(PezLexType type, string token)
         {

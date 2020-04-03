@@ -13,5 +13,9 @@ namespace pez.ast
         public Node left;
         public Node right;
         public Node prev;
+
+        public Node(){}
+        public Node(Lexeme data){ this.data = data; }
+        public override string ToString(){ return data.token; }
     }
 }

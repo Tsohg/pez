@@ -1,5 +1,5 @@
-﻿x = 2*3
-y = 1+2*3-4 #Bugged expression tree.
-
+﻿x = 2*3 #6
+y = 1+2*3-4 #3
+a = 8/2/2-3 #-1
 if x == y
-	z = 32 #results in a weird tree if there is a space in between numbers.
+	z = 1+2-3+2*3-4 #2

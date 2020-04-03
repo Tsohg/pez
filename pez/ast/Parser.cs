@@ -45,10 +45,10 @@ namespace pez.ast
             { "<", 1 },
             { "<=", 1 },
 
-            { "+", 2 }, //mathematical operators
             { "-", 2 },
-            { "*", 3 },
-            { "/", 3 }
+            { "+", 2 }, //mathematical operators
+            { "/", 3 },
+            { "*", 3 }
         };
 
         //Note: only works with left->right assosiativity. for division/subtraction would probably be a good idea to swap the operands
@@ -86,72 +86,41 @@ namespace pez.ast
                 Queue<Lexeme> postfixNodes = ShuntingYard(subset.ToArray(), scope);
 
                 //apply algorithm to transform the output queue to an AST.
-
-                //my own algorithm for converting a postfix expression to an ast.
-                //TODO: bugfix this algorithm.
-                Stack<Lexeme> operators = new Stack<Lexeme>();
-                Queue<Lexeme> operands = new Queue<Lexeme>();
-
+                Node root = null;
+                Stack<Node> trees = new Stack<Node>();
+                Lexeme lex = null;
                 while(postfixNodes.Count > 0)
                 {
-                    Lexeme l = postfixNodes.Dequeue();
-                    if (l.LType == PezLexType.op)
-                        operators.Push(l);
-                    else
-                        operands.Enqueue(l);
+                    lex = postfixNodes.Dequeue();
+                    if (lex.LType != PezLexType.op)
+                        trees.Push(new Node(lex));
+                    else if(lex.LType == PezLexType.op)
+                    {
+                        Node n2 = trees.Pop();
+                        Node n1 = trees.Pop();
+                        Node n3 = new Node(lex);
+                        n3.left = n1;
+                        n3.right = n2;
+                        n2.prev = n3;
+                        n1.prev = n3;
+                        trees.Push(n3);
+                    }
                 }
-
-                Node node = new Node();
-                Node root = null;
-
-                while (operands.Count > 0 || operators.Count > 0)
+                if (trees.Count > 1) //keyword handling. should be the last in the input stream.
                 {
-                    if(keywords.Contains(operands.Peek().token)) //if we encounter a keyword like if/while.
-                    {
-                        node.data = operands.Dequeue();
-                        root = node;
-                        if (node.data.token == "else") //a 1 line else statement. break loop and return.
-                            break;
-                        node.right = new Node();
-                        node.right.prev = node;
-                        node = node.right;
-                        continue;
-                    }
-
-                    if (node.data == null && operators.Count > 0)
-                    {
-                        node.data = operators.Pop();
-                        if (root == null)
-                            root = node;
-                    }
-
-                    if(node.left == null && operands.Count > 0)
-                    {
-                        node.left = new Node();
-                        node.left.data = operands.Dequeue();
-                        node.left.prev = node;
-                    }
-
-                    if(node.right == null && operators.Count > 0)
-                    {
-                        node.right = new Node();
-                        node.right.data = operators.Pop();
-                        node.right.prev = node;
-                    }
-                    else if(node.right == null && operands.Count > 0)
-                    {
-                        node.right = new Node();
-                        node.right.data = operands.Dequeue();
-                        node.right.prev = node;
-                    }
-                    node = node.right;
+                    Node topExp = trees.Pop();
+                    Node key = trees.Pop();
+                    key.right = topExp;
+                    topExp.prev = key;
+                    trees.Push(key);
                 }
+                root = trees.Pop();
 
                 if (root == null) throw new Exception("Null root.");
 
                 //search for weird trees with a left node but no right node. there should always be a right node if there is a left and vice versa.
-                Node test = root;
-                TestAST(test);
+                //Node test = root;
+                //TestAST(test);
 
                 astAndScope.Add(new Tuple<Node, int>(root, scope)); //associates a statement with it's scope.
             }

@@ -71,62 +71,10 @@ namespace pez.dispenser.cola
             source.Append(ast.left.data.token + " "); //var name
             source.Append(ast.data.token + " "); //assignment operator
 
-            //simplify the expression if it is some kind of static formula to its represented value. (This is a luajit 2.0 optimization as well).
-
-            #region deprecated
             Node exp = ast.right; //This subset tree of the assignment ast is the expression/value.
-            exp.prev = null;
-            Stack<int> stack = new Stack<int>();
-            int result;
-            while (!int.TryParse(exp.data.token, out result))
-            {
-                while (exp.right.data.LType == lex.PezLexType.op) //navigate to end of tree
-                    exp = exp.right;
+            InOrderWrite(exp);
 
-                int a;
-                int b;
-                int c;
-                stack.Push(int.Parse(exp.left.data.token));
-                stack.Push(int.Parse(exp.right.data.token));
-                exp.left = null;
-                exp.right = null;
-                //apply operation and set current node to its value.
-                switch (exp.data.token)
-                {
-                    case "+":
-                        c = stack.Pop() + stack.Pop();
-                        exp.data.token = c.ToString();
-                        //stack.Push(c);
-                        break;
-                    case "-":
-                        b = stack.Pop();
-                        a = stack.Pop();
-                        c = b - a;
-                        exp.data.token = c.ToString();
-                        //stack.Push(c);
-                        break;
-                    case "*":
-                        c = stack.Pop() * stack.Pop();
-                        exp.data.token = c.ToString();
-                        //stack.Push(c);
-                        break;
-                    case "/":
-                        b = stack.Pop();
-                        a = stack.Pop();
-                        c = b / a;
-                        exp.data.token = c.ToString();
-                        //stack.Push(c);
-                        break;
-                    default:
-                        break;
-                }
-                exp.data.LType = lex.PezLexType._int;
-                if(exp.prev != null)
-                    exp = exp.prev;
-            }
-            #endregion
-
-            source.AppendLine(result + ";");
+            source.AppendLine(";");
         }
 
         /// <summary>
@@ -160,6 +108,17 @@ namespace pez.dispenser.cola
                 Write(offset);
             AppendScope(scope);
             source.AppendLine("}");
+        }
+
+        private void InOrderWrite(Node ast)
+        {
+            if (ast == null) return;
+
+            InOrderWrite(ast.left);
+
+            source.Append(ast.data.token);
+
+            InOrderWrite(ast.right);
         }
     }
 }

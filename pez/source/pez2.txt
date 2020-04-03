@@ -1,8 +1,20 @@
 void main(){
 	int x = 2*3;
 	int y = 1+2*3-4;
-	int a = 8/2/2-3;
+	int p = 8/2/2-3;
 	if(x == y){
 		int z = 1+2-3+2*3-4;
+	}
+	int u = 0;
+	for(int b = 1; b < 10; b++)
+		u + 1;
+	}
+	if(x == y){
+		if(y == z){
+			z + 1;
+		}
+		else{
+			z + 2;
+		}
 	}
 }

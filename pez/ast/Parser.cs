@@ -38,17 +38,19 @@ namespace pez.ast
         {
             { "=", 0 }, //assignment operator
 
-            { "==", 1 }, //boolean operators
-            { "!=", 1 },
-            { ">", 1 },
-            { ">=", 1 },
-            { "<", 1 },
-            { "<=", 1 },
+            { "::", 1 }, //range operator. x :: y = from x to y.
 
-            { "-", 2 },
-            { "+", 2 }, //mathematical operators
-            { "/", 3 },
-            { "*", 3 }
+            { "==", 2 }, //boolean operators
+            { "!=", 2 },
+            { ">", 2 },
+            { ">=", 2 },
+            { "<", 2 },
+            { "<=", 2 },
+
+            { "-", 3 },
+            { "+", 3 }, //mathematical operators
+            { "/", 4 },
+            { "*", 5 }
         };
 
         //Note: only works with left->right assosiativity. for division/subtraction would probably be a good idea to swap the operands

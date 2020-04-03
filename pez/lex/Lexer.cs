@@ -108,6 +108,19 @@ namespace pez.lex
                 lex = new Lexeme(PezLexType.op, sb.ToString());
                 return lex;
             }
+            else if (HasNextChar() && file[offset] == ':') //range operator or colon operators.
+            {
+                sb.Append(file[offset]);
+                offset++;
+                if (HasNextChar() && file[offset] == ':') //specifically range operators at the moment.
+                {
+                    sb.Append(file[offset]);
+                    offset++;
+                    lex = new Lexeme(PezLexType.op, sb.ToString());
+                    return lex;
+                }
+                else throw new Exception("Invalid range operator at: " + offset);
+            }
             else if (file[offset] == '#')//# will be my comment symbol much like R language.
             {
                 //ignore the rest of the line by finding \r\n then going offset++ then return next()

@@ -32,6 +32,8 @@ namespace pez.ast
             "lpw", //loop while
             "lpf", //loop for
             "else",
+            "func", //function declaration
+            "return" //unary op keyword.
         };
 
         private Dictionary<string, int> precedence = new Dictionary<string, int>()
@@ -108,13 +110,29 @@ namespace pez.ast
                         trees.Push(n3);
                     }
                 }
-                if (trees.Count > 1) //keyword handling. should be the last in the input stream.
+                if (trees.Count > 1) //keyword handling. should be the last in the input stream if not a function. if it is a function, it is at bottom of stack so we flip the stack.
                 {
-                    Node topExp = trees.Pop();
-                    Node key = trees.Pop();
-                    key.right = topExp;
-                    topExp.prev = key;
-                    trees.Push(key);
+                    trees = FlipStack(trees);
+
+                    if (trees.Peek().data.token == keywords[4]) //identifier only tree handling. currently only the func keyword results in identifiers only.
+                    {
+                        //write it to the tree in order with func being at the top attatched to the tree and name of function to the left. Right subtree of func key node are parameter names.
+                        //functions are handled in level order with nodes: root = "func", root.left = "name" root.right = level ordered parameter subtree.
+                        Node top = trees.Pop(); //func
+                        top.left = trees.Pop(); //name of function
+                        top.right = BuildLevelOrderParameterTree(trees, top.right); //parameters
+                        trees.Push(top);
+                    }
+                    else //a different kind of keyword.
+                    {
+                        //reflip stack
+                        trees = FlipStack(trees);
+                        Node topExp = trees.Pop();
+                        Node key = trees.Pop();
+                        key.right = topExp;
+                        topExp.prev = key;
+                        trees.Push(key);
+                    }
                 }
                 root = trees.Pop();
 
@@ -181,32 +199,79 @@ namespace pez.ast
             return output;
         }
 
-        private void TestAST(Node root)
+        /// <summary>
+        /// Inverts stack order. [a b c d e] -> [e d c b a]
+        /// </summary>
+        /// <param name="stack"></param>
+        /// <returns></returns>
+        private Stack<Node> FlipStack(Stack<Node> stack)
         {
-            bool error = false;
-
-            //visit self
-            if (root.data == null)
-                error = true;
-
-            while (true)
-            {
-                //visit left and right
-                if (root.left == null && root.right == null) //if both are null, we hit the last node.
-                    break;
-
-                if (root.right == null) //if one is null, we have a weird tree.
-                    error = true;
-
-                if (root.left == null && !keywords.Contains(root.data.token)) //another keyword test.
-                    error = true;
-
-                if (error) throw new Exception("Weird Tree error on line: " + (astAndScope.Count + 1));
-
-                root = root.right;
-            }
-            if (error) throw new Exception("Weird Tree error on line: " + astAndScope.Count + 1);
+            Stack<Node> flip = new Stack<Node>();
+            while (stack.Count > 0)
+                flip.Push(stack.Pop());
+            return flip;
         }
+
+        /// <summary>
+        /// Builds function tree given the right node of the function node as a null root.
+        /// </summary>
+        /// <param name="trees"></param>
+        /// <param name="ast"></param>
+        /// <returns></returns>
+        private Node BuildLevelOrderParameterTree(Stack<Node> trees, Node ast)
+        {
+            Queue<Node> astq = new Queue<Node>();
+            if (ast == null) ast = new Node();
+            astq.Enqueue(ast);
+            while(astq.Count > 0)
+            {
+                Node t = astq.Dequeue();
+                while(trees.Count > 0)
+                {
+                    if (t.data == null)
+                        t.data = trees.Pop().data;
+                    else if (t.left == null)
+                        t.left = trees.Pop();
+                    else if (t.right == null)
+                        t.right = trees.Pop();
+                    else
+                    {
+                        astq.Enqueue(t.left);
+                        astq.Enqueue(t.right);
+                        break;
+                    }
+                }
+            }
+            return ast;
+        }
+
+        //deprecated at the moment.
+        //private void TestAST(Node root)
+        //{
+        //    bool error = false;
+
+        //    //visit self
+        //    if (root.data == null)
+        //        error = true;
+
+        //    while (true)
+        //    {
+        //        //visit left and right
+        //        if (root.left == null && root.right == null) //if both are null, we hit the last node.
+        //            break;
+
+        //        if (root.right == null) //if one is null, we have a weird tree.
+        //            error = true;
+
+        //        if (root.left == null && !keywords.Contains(root.data.token)) //another keyword test.
+        //            error = true;
+
+        //        if (error) throw new Exception("Weird Tree error on line: " + (astAndScope.Count + 1));
+
+        //        root = root.right;
+        //    }
+        //    if (error) throw new Exception("Weird Tree error on line: " + astAndScope.Count + 1);
+        //}
 
         /// <summary>
         /// Scope sled. Wheeeee!

@@ -67,8 +67,15 @@ namespace pez.dispenser.cola
             }
         }
 
+        private void WriteFunction(Node ast, int scope)
+        {
+            //TODO: Implement method
+            //Note: a function's body is expected to be scope+1 and ends @ scope much like the implementation for writing conditional blocks.
+        }
+
         private void WriteDecOp(Node ast, int scope)
         {
+            //TODO: implement a way to ensure that the variable has already been declared or defined within a particular scope.
             AppendScope(scope);
             source.AppendLine(ast.left.data.token + " " + ast.data.token + " " + ast.right.data.token + ";");
         }
@@ -127,7 +134,7 @@ namespace pez.dispenser.cola
             AppendScope(scope);
             char i = 'a';
             i += (char)scope;
-            source.AppendLine("for(int " + i +  " = " + temp.left.data.token + "; " + i + " < " + temp.right.data.token + "; " + i + "++)"); //expression.
+            source.AppendLine("for(int " + i +  " = " + (int.Parse(temp.left.data.token) - 1) + "; " + i + " < " + temp.right.data.token + "; " + i + "++)"); //expression.
 
             //same as WriteConditional to write within scope.
             offset++;
@@ -163,6 +170,15 @@ namespace pez.dispenser.cola
             source.Append(ast.data.token);
 
             InOrderWrite(ast.right);
+        }
+
+        /// <summary>
+        /// Writes level order parameters into C functions.
+        /// </summary>
+        /// <param name="ast"></param>
+        private void LevelOrderParameterWrite(Node ast)
+        {
+
         }
     }
 }

@@ -220,6 +220,17 @@ namespace pez.ast
         /// <returns></returns>
         private Node BuildLevelOrderParameterTree(Stack<Node> trees, Node ast)
         {
+            //everything left in the tree right now should be a parameter.
+            Stack<Node> temp = new Stack<Node>();
+            trees = FlipStack(trees);
+            while (trees.Count > 0)
+            {
+                Node n = trees.Pop();
+                n.data.LType = PezLexType.parameter;
+                temp.Push(n);
+            }
+            trees = temp;
+
             Queue<Node> astq = new Queue<Node>();
             if (ast == null) ast = new Node();
             astq.Enqueue(ast);

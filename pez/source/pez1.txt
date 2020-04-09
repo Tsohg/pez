@@ -34,3 +34,5 @@ else
 	z + 2
 #else #this should not compile correctly in pez as it would not compile correctly in other languages. so that's on the todo list for later.
 	#z + 3
+
+func HelloWorld a b c d e f g h i j k l m n o p q r s t u v w x y z #currently in testing.

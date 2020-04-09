@@ -13,7 +13,8 @@ namespace pez.lex
         op,
         sep,
         termin,
-        scoper // \t to help determine scope
+        scoper, // \t to help determine scope
+        parameter, //for function parameters
     }
 
     /// <summary>

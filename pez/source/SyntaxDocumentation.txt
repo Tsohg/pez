@@ -10,14 +10,21 @@
 
 if x == y
 	x + 1
-									
+
+#	If statements may also have an else statement. The else must share a scope with it's paired if statement.
+
+if x == y
+	x + 1
+else
+	x + 2
+
 #	lpw keyword is the pez while loop -> lpw condition
 
 lpw x == y
 	x + 1
 
 #	lpf keyword is the pez for loop -> lpf x :: y 
-#	Where X and Y are both integers. Variables are not yet implemented.
+#	Where X and Y are both integers. (Variables for X and Y are not yet implemented as of 4/9/2020).
 #	This loop is 1 based in pez. (Becomes zero based during C translation). 
 
 lpf 1 :: 10
@@ -28,9 +35,12 @@ lpf 1 :: 10
 
 x = 10
 
-if x == z
-	z + 1
-else
-	z + 2
-#else #this should not compile correctly in pez as it would not compile correctly in other languages. so that's on the todo list for later.
-	#z + 3
+#	Function definitions -> func funcName a b c d e f g
+#	Where:
+#		Keyword: func
+#		Function Name: funcName
+#		Parameters: a b c d e f g
+#	Below is a void function with no parameters. (Currently not implemented as of 4/9/2020)
+
+func HelloWorld
+	x = 9001

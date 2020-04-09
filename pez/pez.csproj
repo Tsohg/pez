@@ -59,6 +59,7 @@
   <ItemGroup>
     <Content Include="source\pez1.txt" />
     <Content Include="source\pez2.txt" />
+    <Content Include="source\SyntaxDocumentation.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

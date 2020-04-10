@@ -1,32 +1,15 @@
-﻿##
-##	Pez syntax examples for all structures. Anything not commented out is valid pez code.
-##
+﻿#<-- comment.
+#Pez testing source
 
-#	This is a comment in pez.
+x = 1
+y = 1
+z = 1
 
-#	Scope is delimited by tabs. In other words, the body of an if statement is the number of tabs + 1. The body will end when it has the same number of tabs as the if statement line.
-
-#	If statements -> if condition
-
-if x == y
-	x + 1
-									
-#	lpw keyword is the pez while loop -> lpw condition
-
-lpw x == y
+lpw x == y #while loop
 	x + 1
 
-#	lpf keyword is the pez for loop -> lpf x :: y 
-#	Where X and Y are both integers. Variables are not yet implemented.
-#	This loop is 1 based in pez. (Becomes zero based during C translation). 
-
-lpf 1 :: 10
+lpf 1 :: 10 #for loop
 	x + 1
-
-#	Variable definitions -> x = y
-#	Where y is an integer or a variable. (Other types yet to be implemented).
-
-x = 10
 
 if x == z
 	z + 1
@@ -35,4 +18,11 @@ else
 #else #this should not compile correctly in pez as it would not compile correctly in other languages. so that's on the todo list for later.
 	#z + 3
 
-func HelloWorld a b c d e f g h i j k l m n o p q r s t u v w x y z #currently in testing.
+#func HelloWorld a b c d e f g h i j k l m n o p q r s t u v w x y z #currently in testing. C translation unimplemented yet.
+
+if x == y #nested if statements
+	if y == z
+		if z == a
+			b = 3
+		else
+			b = 4

@@ -134,7 +134,7 @@ namespace pez.dispenser.cola
             AppendScope(scope);
             char i = 'a';
             i += (char)scope;
-            source.AppendLine("for(int " + i +  " = " + (int.Parse(temp.left.data.token) - 1) + "; " + i + " < " + temp.right.data.token + "; " + i + "++)"); //expression.
+            source.AppendLine("for(int " + i +  " = " + (int.Parse(temp.left.data.token) - 1) + "; " + i + " < " + temp.right.data.token + "; " + i + "++){"); //expression.
 
             //same as WriteConditional to write within scope.
             offset++;

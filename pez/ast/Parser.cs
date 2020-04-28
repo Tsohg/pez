@@ -32,8 +32,14 @@ namespace pez.ast
             "lpw", //loop while
             "lpf", //loop for
             "else",
-            "func", //function declaration
             "return" //unary op keyword.
+        };
+
+        private readonly List<string> loKeys = new List<string>() //level order tree keywords.
+        {
+            "func", //function declaration which is followed by fnfo and fret respectively.
+            "fnfo",
+            "fret"
         };
 
         private Dictionary<string, int> precedence = new Dictionary<string, int>()
@@ -114,13 +120,22 @@ namespace pez.ast
                 {
                     trees = FlipStack(trees);
 
-                    if (trees.Peek().data.token == keywords[4]) //identifier only tree handling. currently only the func keyword results in identifiers only.
+                    if (loKeys.Contains(trees.Peek().data.token)) //identifier only tree handling. currently only the func keyword results in identifiers only.
                     {
                         //write it to the tree in order with func being at the top attatched to the tree and name of function to the left. Right subtree of func key node are parameter names.
                         //functions are handled in level order with nodes: root = "func", root.left = "name" root.right = level ordered parameter subtree.
-                        Node top = trees.Pop(); //func
-                        top.left = trees.Pop(); //name of function
-                        top.right = BuildLevelOrderParameterTree(trees, top.right); //parameters
+                        Node top = new Node();
+                        if (trees.Peek().data.token == "func")
+                        {
+                            top = trees.Pop(); //func
+                            top.left = trees.Pop(); //name of function
+                            top.right = BuildLevelOrderParameterTree(trees, top.right); //parameters
+                        }
+                        else if (trees.Peek().data.token == "fnfo" || trees.Peek().data.token == "fret")
+                        {
+                            top = trees.Pop(); //fnfo/fret
+                            top.right = BuildLevelOrderParameterTree(trees, top.right); //level order expression tree for parameters
+                        }
                         trees.Push(top);
                     }
                     else //a different kind of keyword.

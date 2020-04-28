@@ -1,28 +1,9 @@
-﻿#<-- comment.
-#Pez testing source
+﻿func main #For C code, this is REQUIRED to run.
+	a = 1
+	b = 2
+	b + a
 
-x = 1
-y = 1
-z = 1
-
-lpw x == y #while loop
-	x + 1
-
-lpf 1 :: 10 #for loop
-	x + 1
-
-if x == z
-	z + 1
-else
-	z + 2
-#else #this should not compile correctly in pez as it would not compile correctly in other languages. so that's on the todo list for later.
-	#z + 3
-
-#func HelloWorld a b c d e f g h i j k l m n o p q r s t u v w x y z #currently in testing. C translation unimplemented yet.
-
-if x == y #nested if statements
-	if y == z
-		if z == a
-			b = 3
-		else
-			b = 4
+func add num1 num2
+fnfo int int
+fret int
+	return num1 + num2

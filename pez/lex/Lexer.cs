@@ -48,7 +48,7 @@ namespace pez.lex
         /// Returns the next lexeme/token in the file based on a list of separators defined in PezSym.
         /// </summary>
         /// <returns>The next lexeme/token in a file.</returns>
-        private Lexeme Next() //remove \r\n terminators.
+        private Lexeme Next()
         {
             Lexeme lex; 
 

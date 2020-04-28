@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using pez.ast;
 using System.IO;
+using pez.lex;
 
 namespace pez.dispenser.cola
 {
@@ -13,7 +14,8 @@ namespace pez.dispenser.cola
     /// </summary>
     class TranslateC : BaseTranslate
     {
-        private StringBuilder source = new StringBuilder("void main(){\n"); //Currently i will just dump the contents of the code inside the main function of a C program.
+        private StringBuilder functions = new StringBuilder(); //function definitions for C.
+        private StringBuilder source = new StringBuilder(); //Currently i will just dump the contents of the code inside the main function of a C program.
         private int offset = 0;
 
         public TranslateC(List<Tuple<Node, int>> astAndScope, string outPath) : base(astAndScope, outPath) { }
@@ -21,8 +23,8 @@ namespace pez.dispenser.cola
         public override void Translate()
         {
             while (offset < astAndScope.Count)
-                Write(offset);
-            source.Append("}"); //ending brace for void main()
+                WriteState(offset);
+            //source.Append("}"); //ending brace for void main()
             System.IO.File.WriteAllText(outPath, source.ToString());
         }
 
@@ -32,26 +34,30 @@ namespace pez.dispenser.cola
                 source.Append("\t");
         }
 
-        private void Write(int index)
+        /// <summary>
+        /// Primary function to write instructions recursively. WriteState's base cases are in the form of unscoped instructions such as basic mathematical operations.
+        /// </summary>
+        /// <param name="index"></param>
+        private void WriteState(int index) //write instructions state.
         {
             Node ast = astAndScope[index].Item1;
-            int mScope = astAndScope[index].Item2 + 1; //necessary scope for the main function of C. we use scope for tab indentations.
+            int scope = astAndScope[index].Item2;
 
             switch (ast.data.token)
             {
                 case "=": //assignment
-                    WriteAssignment(ast, mScope);
+                    WriteAssignmentState(ast, scope);
                     offset++;
                     break;
                 case "if": //if statement
                 case "lpw": //while loop
-                    WriteConditional(ast, mScope);
+                    WriteConditionalState(ast, scope);
                     break;
                 case "lpf": //for loops have to be handled separately.      lpf X to Y       will be the syntax.
-                    WriteLpf(ast, mScope);
+                    WriteLpfState(ast, scope);
                     break;
                 case "else": //if->else
-                    WriteElse(mScope);
+                    WriteElseState(scope);
                     break;
 
                 //operating on an already declared int var.
@@ -59,21 +65,72 @@ namespace pez.dispenser.cola
                 case "-":
                 case "*":
                 case "/":
-                    WriteDecOp(ast, mScope);
+                    WriteVarOpState(ast, scope);
                     offset++;
                     break;
+
+                //Return statements
+                case "return":
+                    WriteReturnState(ast, scope);
+                    offset++;
+                    break;
+
+                case "func":
+                    //pos from right to left bitfield:
+                    //has parameter info
+                    //has return info
+                    //parameter info has correct scope
+                    //return info has correct scope.
+                    short flags = 0;
+
+                    //Should probably make this more efficient.
+                    if(astAndScope[offset + 1].Item1.data.token == "fnfo") //parameter info
+                    {
+                        flags |= 1;
+                        if (astAndScope[offset + 2].Item1.data.token == "fret") //return info with parameter info
+                        {
+                            flags |= 2;
+                            if (scope == astAndScope[offset + 2].Item2)
+                                flags |= 8;
+                        }
+                        //check scope of fnfo
+                        if (scope == astAndScope[offset + 1].Item2)
+                            flags |= 4;
+                    }
+                    else if(astAndScope[offset + 1].Item1.data.token == "fret") //return info but no params.
+                    {
+                        flags |= 2;
+                        if(astAndScope[offset + 2].Item1.data.token == "fnfo") //parameter info with return info.
+                        {
+                            flags |= 1;
+                            if (scope == astAndScope[offset + 1].Item2)
+                                flags |= 4;
+                        }
+                        //check scope of fret
+                        if (scope == astAndScope[offset + 2].Item2)
+                            flags |= 8;
+                    }
+
+                    WriteFunctionState(ast, scope, flags);
+                    break;
+
                 default:
                     throw new Exception("TranslateC:Write:: Errorneous first node.");
             }
         }
 
-        private void WriteFunction(Node ast, int scope)
+        private void WriteReturnState(Node ast, int scope)
         {
-            //TODO: Implement method
-            //Note: a function's body is expected to be scope+1 and ends @ scope much like the implementation for writing conditional blocks.
+
         }
 
-        private void WriteDecOp(Node ast, int scope)
+        /// <summary>
+        /// Returns true if there is a return statement in the ast. else returns false.
+        /// </summary>
+        /// <param name="ast"></param>
+        /// <param name="scope"></param>
+        /// <returns></returns>
+        private void WriteVarOpState(Node ast, int scope) //variable operation
         {
             //TODO: implement a way to ensure that the variable has already been declared or defined within a particular scope.
             AppendScope(scope);
@@ -85,7 +142,7 @@ namespace pez.dispenser.cola
         /// </summary>
         /// <param name="ast"></param>
         /// <param name="scope"></param>
-        private void WriteAssignment(Node ast, int scope)
+        private void WriteAssignmentState(Node ast, int scope)
         {
             AppendScope(scope);
             source.Append("int " + ast.left.data.token + " " + ast.data.token + " "); //for now, we are only doing integers so this is the type.
@@ -100,8 +157,9 @@ namespace pez.dispenser.cola
         /// </summary>
         /// <param name="ast"></param>
         /// <param name="scope"></param>
-        private void WriteConditional(Node ast, int scope) //TODO: pull out the while(offset < ast...) into a method called WriteScoped(scope)
+        private void WriteConditionalState(Node ast, int scope) //TODO: pull out the while(offset < ast...) into a method called WriteScoped(scope)
         {
+            //TODO: Make it so else statements can only be written here if necessary. If written elsewhere, throw a compiler error.
             AppendScope(scope);
             string keyword;
             Node temp = ast;
@@ -122,13 +180,15 @@ namespace pez.dispenser.cola
             source.Append("){\n");
             offset++; //next line after conditional expression.
             //write until out of scope.
-            while (offset < astAndScope.Count && astAndScope[offset].Item2 + 1 == (scope + 1)) //TODO: while in scope. Note: this is item2 + 1 because we are assuming we are inside the void main func. REMOVE WHEN NOT IN MAIN.
-                Write(offset);
+
+            while (offset < astAndScope.Count && astAndScope[offset].Item2 == (scope + 1))
+                WriteState(offset);
+
             AppendScope(scope);
             source.AppendLine("}");
         }
 
-        private void WriteLpf(Node ast, int scope)
+        private void WriteLpfState(Node ast, int scope)
         {
             Node temp = ast.right;
             AppendScope(scope);
@@ -138,14 +198,14 @@ namespace pez.dispenser.cola
 
             //same as WriteConditional to write within scope.
             offset++;
-            while (offset < astAndScope.Count && astAndScope[offset].Item2 + 1 == (scope + 1)) //TODO: while in scope. Note: this is item2 + 1 because we are assuming we are inside the void main func. REMOVE WHEN NOT IN MAIN.
-                Write(offset);
+            while (offset < astAndScope.Count && astAndScope[offset].Item2 == (scope + 1));
+                WriteState(offset);
 
             AppendScope(scope);
             source.AppendLine("}");
         }
 
-        private void WriteElse(int scope)
+        private void WriteElseState(int scope)
         {
             //TODO: Might want to do some sophisticated checking to ensure that else only ever follows an if statement.
 
@@ -154,8 +214,62 @@ namespace pez.dispenser.cola
 
             //same as WriteConditional to write within scope.
             offset++;
-            while (offset < astAndScope.Count && astAndScope[offset].Item2 + 1 == (scope + 1)) //TODO: while in scope. Note: this is item2 + 1 because we are assuming we are inside the void main func. REMOVE WHEN NOT IN MAIN.
-                Write(offset);
+            while (offset < astAndScope.Count && astAndScope[offset].Item2 == (scope + 1))
+                WriteState(offset);
+
+            AppendScope(scope);
+            source.AppendLine("}");
+        }
+
+        private void WriteFunctionState(Node func, int scope, short flags)
+        {
+            //Note: a function's body is expected to be scope+1 and ends @ scope much like the implementation for writing conditional blocks.
+
+            //pos from right to left bitfield:
+            //has parameter info
+            //has return info
+            //parameter info has correct scope
+            //return info has correct scope.
+
+            if ((flags & 1) == 1 && (flags & 4) != 4) throw new Exception("Function parameter information (fnfo) is not scoped correctly relative to the function (func).");
+            if ((flags & 2) == 2 && (flags & 8) != 8) throw new Exception("Function return information (fret) is not scoped correctly relative to the function (func).");
+
+            Node fnfo = null;
+            Node fret = null;
+            if ((flags & 1) == 1) //it's either in pos1 or pos2
+            {
+                if (astAndScope[offset + 1].Item1.data.token == "fnfo")
+                    fnfo = astAndScope[offset + 1].Item1;
+                else
+                    fnfo = astAndScope[offset + 2].Item1;
+            }
+
+            if ((flags & 2) == 2) //it's either in pos1 or pos2
+            {
+                if (astAndScope[offset + 1].Item1.data.token == "fret")
+                    fret = astAndScope[offset + 1].Item1;
+                else
+                    fret = astAndScope[offset + 2].Item1;
+            }
+
+            //Only modify offset at end here for clarity.
+            if ((flags & 1) == 1)
+                offset++;
+            if ((flags & 2) == 2)
+                offset++;
+            offset++; //we are now on the next instruction that *should* be scoped to the function.
+
+            //TODO: write function header to functions stringbuilder.
+
+            //write function declaration
+            AppendScope(scope);
+            source.Append(LevelOrderReturnWrite(fret)); // void, int, (int, int)
+            source.Append(" " + func.left.data.token); //function name
+            source.Append(LevelOrderParameterWrite(func, fnfo));
+
+            //writestate loop like conditional writestate loop except outside of main
+            while (offset < astAndScope.Count && astAndScope[offset].Item2 == (scope + 1))
+                WriteState(offset);
 
             AppendScope(scope);
             source.AppendLine("}");
@@ -173,12 +287,77 @@ namespace pez.dispenser.cola
         }
 
         /// <summary>
-        /// Writes level order parameters into C functions.
+        /// Writes level order parameters into C. should return something like: (type name, type name, type name){
         /// </summary>
         /// <param name="ast"></param>
-        private void LevelOrderParameterWrite(Node ast)
+        private string LevelOrderParameterWrite(Node func, Node fnfo)
         {
+            if (fnfo == null)
+                return "(){\n";
 
+            Queue<Node> nq = new Queue<Node>();
+            nq.Enqueue(func.right);
+            Lexeme[] funcParams = LevelOrderTraversal(nq); //right subtree of func = parameter list.
+
+            nq = new Queue<Node>();
+            nq.Enqueue(fnfo.right);
+            Lexeme[] funcInfo = LevelOrderTraversal(nq); //same as function declaration
+
+            StringBuilder result = new StringBuilder();
+
+            if (funcParams.Length != funcInfo.Length) throw new Exception("Invalid number of types or parameters. Make sure types and parameters in the func and fnfo declaration are the same.");
+
+            result.Append("(");
+            for(int i = 0; i < funcParams.Length; i++)
+            {
+                result.Append(funcInfo[i].token + " ");
+                result.Append(funcParams[i].token + ", ");
+            }
+            result.Remove(result.Length - 2, 2); //remove extra comma
+            result.AppendLine("){");
+
+            return result.ToString();
+        }
+
+        /// <summary>
+        /// Writes level order function return in C.
+        /// </summary>
+        /// <param name="func"></param>
+        /// <param name="fret"></param>
+        private string LevelOrderReturnWrite(Node fret)
+        {
+            if (fret == null)
+                return "void";
+
+            StringBuilder result = new StringBuilder();
+
+            //For C language, we discard all other return types except the first one.
+            result.Append(fret.right.data.token);
+
+            return result.ToString();
+        }
+        /// <summary>
+        /// Returns an array of lexemes in level order.
+        /// </summary>
+        /// <param name="ast"></param>
+        /// <returns></returns>
+        private Lexeme[] LevelOrderTraversal(Queue<Node> nq)
+        {
+            List<Lexeme> lexstream = new List<Lexeme>();
+
+            while(nq.Count > 0)
+            {
+                Node n = nq.Dequeue();
+                lexstream.Add(n.data);
+
+                if (n.left != null)
+                    nq.Enqueue(n.left);
+
+                if (n.right != null)
+                    nq.Enqueue(n.right);
+            }
+
+            return lexstream.ToArray();
         }
     }
 }

@@ -2,6 +2,16 @@
 ##	Pez syntax examples for all structures. Anything not commented out is valid pez code.
 ##
 
+#	Entry point of pez:
+#	Write func main and indent once to compile into something runnable in C or other languages. Pez will detect this function and grant an equivalent in other languages.
+#	Note: Some languages may require their main function to return something or accept parameters. More on that later when working on languages outside of C.
+
+func main
+	a = 1
+	b = 2
+	c = b + a
+
+
 #	This is a comment in pez.
 
 #	Scope is delimited by tabs. In other words, the body of an if statement is the number of tabs + 1. The body will end when it has the same number of tabs as the if statement line.

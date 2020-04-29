@@ -121,7 +121,10 @@ namespace pez.dispenser.cola
 
         private void WriteReturnState(Node ast, int scope)
         {
-
+            AppendScope(scope);
+            source.Append(ast.data.token + " "); //return
+            InOrderWrite(ast.right); //right subtree of ast is in-order expression.
+            source.AppendLine(";");
         }
 
         /// <summary>
@@ -130,11 +133,13 @@ namespace pez.dispenser.cola
         /// <param name="ast"></param>
         /// <param name="scope"></param>
         /// <returns></returns>
-        private void WriteVarOpState(Node ast, int scope) //variable operation
+        private void WriteVarOpState(Node ast, int scope) //variable operation. TODO: Replace with InOrderWrite?
         {
             //TODO: implement a way to ensure that the variable has already been declared or defined within a particular scope.
             AppendScope(scope);
-            source.AppendLine(ast.left.data.token + " " + ast.data.token + " " + ast.right.data.token + ";");
+            InOrderWrite(ast); //this tree has no key.
+            source.AppendLine(";");
+            //source.AppendLine(ast.left.data.token + " " + ast.data.token + " " + ast.right.data.token + ";");
         }
 
         /// <summary>

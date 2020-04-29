@@ -1,7 +1,8 @@
 ﻿func main #For C code, this is REQUIRED to run.
 	a = 1
 	b = 2
-	b + a
+	c = b + a
+	#c + a - b + c #is this even valid C?
 
 func add num1 num2
 fnfo int int

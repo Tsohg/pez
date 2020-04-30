@@ -13,7 +13,7 @@ namespace pez
         static void Main(string[] args) //pez filepath -c //for C dispensing on command line.
         {
             if (!File.Exists(args[0]))
-                throw new Exception("Invalid file path. Must use a full path to the pez source file.");
+               throw new Exception("Invalid file path. Must use a full path to the pez source file.");
 
             //might want to check to see if args[1] is a valid file path.
 

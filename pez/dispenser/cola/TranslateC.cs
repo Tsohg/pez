@@ -188,7 +188,7 @@ namespace pez.dispenser.cola
                     variables.Add(ast.left.data);
                     break;
                 case PezLexType._string: //add strings BEFORE going to C if necessary.
-                    source.Append("char*" + " ");
+                    source.Append("char*" + partial);
                     source.Append(ProcessAssignmentStringState(ast.right));
                     ast.left.data.LType = PezLexType._string;
                     variables.Add(ast.left.data);

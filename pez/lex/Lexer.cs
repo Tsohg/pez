@@ -57,8 +57,6 @@ namespace pez.lex
             if (!HasNextChar())
                 return new Lexeme(PezLexType.termin, eof);
 
-            //TODO: Handle ( ) then handle ( ) in Parser.ShuntingYard
-
             //Note: file[offset] is the current character we are looking at.
 
             //whitespace is first because i expect to read in a stream of \t when if statements pop up to determine scope.
@@ -80,11 +78,11 @@ namespace pez.lex
                         return Next(); //if bugs happen, it's probably here
                 }
             }
-            else if(file[offset] == '"') //string literal beginning. anything surrounded in quotations is a string.
+            else if (file[offset] == '"') //string literal beginning. anything surrounded in quotations is a string.
             {
                 sb.Append(file[offset]); //add quotation
                 offset++;
-                while(HasNextChar() && file[offset] != '"')
+                while (HasNextChar() && file[offset] != '"')
                 {
                     sb.Append(file[offset]);
                     offset++;
@@ -116,7 +114,7 @@ namespace pez.lex
                     sb.Append(file[offset]);
                     offset++;
                 }
-                if(type == PezLexType.unid) //probably an integer so lets test.
+                if (type == PezLexType.unid) //probably an integer so lets test.
                 {
                     int val;
                     if (!int.TryParse(sb.ToString(), out val))
@@ -129,7 +127,7 @@ namespace pez.lex
                 {
                     float val;
                     double dval;
-                    if(!float.TryParse(sb.ToString(), out val)) //too big for a float
+                    if (!float.TryParse(sb.ToString(), out val)) //too big for a float
                     {
                         if (!double.TryParse(sb.ToString(), out dval))
                             throw new Exception("Lexer:Digit:: Value is too big to be contained within a double.");
@@ -143,8 +141,21 @@ namespace pez.lex
                     return lex;
                 }
             }
-            else if ((41 < file[offset]) && (file[offset] < 48) || file[offset] == '=') //42 - 47 are basic ops
+            else if ((39 < file[offset]) && (file[offset] < 48) || file[offset] == '=') //42 - 47 are basic ops 40 and 41 are ( )
             {
+                if (file[offset] == 40)
+                {
+                    lex = new Lexeme(PezLexType.l_paren, file[offset].ToString()); // (
+                    offset++;
+                    return lex;
+                }
+                else if (file[offset] == 41)
+                {
+                    lex = new Lexeme(PezLexType.r_paren, file[offset].ToString()); // )
+                    offset++;
+                    return lex;
+                }
+                //theoretically can use .= .+ .- as operators...
                 while (HasNextChar() && (41 < file[offset]) && (file[offset] < 48) || file[offset] == '=') //(41 < c < 48) //TODO: Move assignment to boolean lex for expressions later.
                 {
                     sb.Append(file[offset]);

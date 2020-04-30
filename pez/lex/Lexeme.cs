@@ -19,6 +19,8 @@ namespace pez.lex
         termin,
         scoper, // \t to help determine scope
         parameter, //for function parameters
+        l_paren, // (
+        r_paren, //)
     }
 
     /// <summary>

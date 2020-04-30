@@ -44,6 +44,9 @@ namespace pez.ast
 
         private Dictionary<string, int> precedence = new Dictionary<string, int>()
         {
+            { ")", -2}, //debugging at lowest prec
+            { "(", -1},
+
             { "=", 0 }, //assignment operator
 
             { "::", 1 }, //range operator. x :: y = from x to y.
@@ -189,19 +192,33 @@ namespace pez.ast
 
             while(offset < subset.Length)
             {
-                Lexeme token = subset[offset];
-                if (token.LType == PezLexType.id || IsType(token.LType)) //id/type as operands
+                Lexeme lex = subset[offset];
+                if (lex.LType == PezLexType.id || IsType(lex.LType)) //id/type as operands
                 {
-                    output.Enqueue(token);
+                    output.Enqueue(lex);
                     offset++;
                 }
-                else if(token.LType == PezLexType.op)
+                else if(lex.LType == PezLexType.op)
                 {
                     //TODO: Parens must be included in this check when we handle parens in the lexer.
-                    while(ops.Count > 0 && precedence[ops.Peek().token] >= precedence[token.token]) //top of stack has greater precedence than the current token. 
+                    while(ops.Count > 0 && precedence[ops.Peek().token] >= precedence[lex.token]) //top of stack has greater precedence than the current token. 
                         output.Enqueue(ops.Pop());
-                    ops.Push(token);
+                    ops.Push(lex);
                     offset++;
+                }
+
+                if (lex.LType == PezLexType.l_paren)
+                {
+                    ops.Push(lex);
+                    offset++;
+                }
+                if(lex.LType == PezLexType.r_paren)
+                {
+                    offset++; //skip ) for next iteration
+                    while(ops.Peek().LType != PezLexType.l_paren)
+                        output.Enqueue(ops.Pop());
+                    if (ops.Peek().LType == PezLexType.l_paren)
+                        ops.Pop(); //discard (
                 }
 
                 if(offset >= subset.Length) //if no more tokens to be read

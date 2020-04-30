@@ -139,7 +139,7 @@ namespace pez.dispenser.cola
         /// <returns></returns>
         private void WriteVarOpState(Node ast, int scope) //variable operation.
         {
-            //TODO: implement a way to ensure that the variable has already been declared or defined within a particular scope.
+            //TODO past May 1st: implement a way to ensure that the variable has already been declared or defined within a particular scope.
             AppendScope(scope);
             InOrderWrite(ast); //this tree has no key.
             source.AppendLine(";");
@@ -150,7 +150,7 @@ namespace pez.dispenser.cola
         /// </summary>
         /// <param name="ast"></param>
         /// <param name="scope"></param>
-        private void WriteAssignmentState(Node ast, int scope) //TODO: Implement for string and float
+        private void WriteAssignmentState(Node ast, int scope)
         {
             AppendScope(scope);
             Node exp;
@@ -235,9 +235,9 @@ namespace pez.dispenser.cola
         /// </summary>
         /// <param name="ast"></param>
         /// <param name="scope"></param>
-        private void WriteConditionalState(Node ast, int scope) //TODO: pull out the while(offset < ast...) into a method called WriteScoped(scope)
+        private void WriteConditionalState(Node ast, int scope) //TODO Past May 1st: pull out the while(offset < ast...) into a method called WriteScoped(scope)
         {
-            //TODO: Make it so else statements can only be written here if necessary. If written elsewhere, throw a compiler error.
+            //TODO past May 1st: Make it so else statements can only be written here if necessary. If written elsewhere, throw a compiler error.
             AppendScope(scope);
             string keyword;
             Node temp = ast;
@@ -285,7 +285,7 @@ namespace pez.dispenser.cola
 
         private void WriteElseState(int scope)
         {
-            //TODO: Might want to do some sophisticated checking to ensure that else only ever follows an if statement.
+            //TODO past May 1st: Might want to do some sophisticated checking to ensure that else only ever follows an if statement.
 
             AppendScope(scope);
             source.AppendLine("else{");
@@ -366,7 +366,7 @@ namespace pez.dispenser.cola
             source.AppendLine("}");
         }
 
-        private void InOrderWrite(Node ast)
+        private void InOrderWrite(Node ast) //TODO past May 1st: Redo for parentheses expressions.
         {
             if (ast == null) return;
 

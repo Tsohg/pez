@@ -1,7 +1,8 @@
 ﻿func main #For C code, this is REQUIRED to run.
-	a = 1
-	b = 2
-	c = b + a
+	a = 1 * 2 - 3 + 4 / 5 + 6 * 7
+	f = 2.9 + 3.2
+	b = "hey does this work?"
+	d = "banana" + "rama" + "lolol" + " yes" + " i probably" + " did it" + " with odds as well"
 	#c + a - b + c #is this even valid C?
 
 func add num1 num2

@@ -8,8 +8,12 @@ namespace pez.lex
 {
     public enum PezLexType
     {
+        _int, //additional types should be put below int but above double.
+        _string,
+        _float,
+        _double,
+        unid, //unidentified lexeme type.
         id, //identifiers can be a lot of different things.
-        _int,
         op,
         sep,
         termin,

@@ -59,6 +59,8 @@ namespace pez.lex
 
             //TODO: Handle ( ) then handle ( ) in Parser.ShuntingYard
 
+            //Note: file[offset] is the current character we are looking at.
+
             //whitespace is first because i expect to read in a stream of \t when if statements pop up to determine scope.
             if (char.IsWhiteSpace(file[offset])) //we count \t as a scope token. \r\n is our terminating token.
             {
@@ -78,6 +80,22 @@ namespace pez.lex
                         return Next(); //if bugs happen, it's probably here
                 }
             }
+            else if(file[offset] == '"') //string literal beginning. anything surrounded in quotations is a string.
+            {
+                sb.Append(file[offset]); //add quotation
+                offset++;
+                while(HasNextChar() && file[offset] != '"')
+                {
+                    sb.Append(file[offset]);
+                    offset++;
+                }
+                sb.Append(file[offset]); //should be a closing quotation.
+                offset++;
+                //check to see if someone missed a quotation
+                if (!HasNextChar() && sb[sb.Length - 1] != '"') throw new Exception("Lexer:StringLiteral:: Missing Quotation.");
+                lex = new Lexeme(PezLexType._string, sb.ToString());
+                return lex;
+            }
             else if (char.IsLetter(file[offset])) //read until space as an identifier or type name. note: ids can be types.
             {
                 while (HasNextChar() && char.IsLetterOrDigit(file[offset]))
@@ -88,15 +106,42 @@ namespace pez.lex
                 lex = new Lexeme(PezLexType.id, sb.ToString());
                 return lex;
             }
-            else if (char.IsDigit(file[offset])) //read until space as integer
+            else if (char.IsDigit(file[offset])) //read value until space. test to see if it is an integer or float.
             {
-                while (HasNextChar() && char.IsDigit(file[offset]))
+                PezLexType type = PezLexType.unid;
+                while (HasNextChar() && (char.IsDigit(file[offset]) || file[offset] == '.'))
                 {
+                    if (file[offset] == '.')
+                        type = PezLexType._float;
                     sb.Append(file[offset]);
                     offset++;
                 }
-                lex = new Lexeme(PezLexType._int, sb.ToString());
-                return lex;
+                if(type == PezLexType.unid) //probably an integer so lets test.
+                {
+                    int val;
+                    if (!int.TryParse(sb.ToString(), out val))
+                        throw new Exception("Lexer:Digit:: Value is too big for an integer.");
+
+                    lex = new Lexeme(PezLexType._int, sb.ToString());
+                    return lex;
+                }
+                else //type of float OR double. but we assume double here for now.
+                {
+                    float val;
+                    double dval;
+                    if(!float.TryParse(sb.ToString(), out val)) //too big for a float
+                    {
+                        if (!double.TryParse(sb.ToString(), out dval))
+                            throw new Exception("Lexer:Digit:: Value is too big to be contained within a double.");
+
+                        //return it as a double
+                        lex = new Lexeme(PezLexType._double, sb.ToString());
+                        return lex;
+                    }
+                    //it can fit in a float so return it as float
+                    lex = new Lexeme(PezLexType._float, sb.ToString());
+                    return lex;
+                }
             }
             else if ((41 < file[offset]) && (file[offset] < 48) || file[offset] == '=') //42 - 47 are basic ops
             {

@@ -1,9 +1,11 @@
+int add(int num1, int num2);
+
 void main(){
-	int a = 1;
-	int b = 2;
-	int c = b+a;
-	c+a-b+c;
+	int a = 1+2+3+4+5+6+7;
+	char* "hey does this work?";
+	char* "bananaramalolol yes i probably did it with odds as well";
 }
 int add(int num1, int num2){
 	return num1+num2;
 }
+

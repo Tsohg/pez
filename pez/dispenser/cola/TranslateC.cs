@@ -17,6 +17,7 @@ namespace pez.dispenser.cola
         private StringBuilder functions = new StringBuilder(); //function definitions for C.
         private StringBuilder source = new StringBuilder(); //Currently i will just dump the contents of the code inside the main function of a C program.
         private int offset = 0;
+        private List<Lexeme> variables = new List<Lexeme>();
 
         public TranslateC(List<Tuple<Node, int>> astAndScope, string outPath) : base(astAndScope, outPath) { }
 
@@ -25,7 +26,10 @@ namespace pez.dispenser.cola
             while (offset < astAndScope.Count)
                 WriteState(offset);
             //source.Append("}"); //ending brace for void main()
-            System.IO.File.WriteAllText(outPath, source.ToString());
+            StringBuilder c = new StringBuilder();
+            c.AppendLine(functions.ToString());
+            c.AppendLine(source.ToString());
+            System.IO.File.WriteAllText(outPath, c.ToString());
         }
 
         private void AppendScope(int scope)
@@ -133,13 +137,12 @@ namespace pez.dispenser.cola
         /// <param name="ast"></param>
         /// <param name="scope"></param>
         /// <returns></returns>
-        private void WriteVarOpState(Node ast, int scope) //variable operation. TODO: Replace with InOrderWrite?
+        private void WriteVarOpState(Node ast, int scope) //variable operation.
         {
             //TODO: implement a way to ensure that the variable has already been declared or defined within a particular scope.
             AppendScope(scope);
             InOrderWrite(ast); //this tree has no key.
             source.AppendLine(";");
-            //source.AppendLine(ast.left.data.token + " " + ast.data.token + " " + ast.right.data.token + ";");
         }
 
         /// <summary>
@@ -147,14 +150,84 @@ namespace pez.dispenser.cola
         /// </summary>
         /// <param name="ast"></param>
         /// <param name="scope"></param>
-        private void WriteAssignmentState(Node ast, int scope)
+        private void WriteAssignmentState(Node ast, int scope) //TODO: Implement for string and float
         {
             AppendScope(scope);
-            source.Append("int " + ast.left.data.token + " " + ast.data.token + " "); //for now, we are only doing integers so this is the type.
-            Node exp = ast.right; //This subset tree of the assignment ast is the expression/value.
-            InOrderWrite(exp);
+            Node exp;
+            string partial = " " + ast.left.data.token + " " + ast.data.token + " ";
+            //variables.Add(ast.left.data); //ast.left will always be the name of the variable being assigned.
+            PezLexType type = Parser.FindLexDataType(ast);
 
+            TopOfSwitch:
+            switch (type)
+            {
+                case PezLexType.id: //variable only assignment operation
+                    //access the first variable being operated on and return its type
+                    type = Parser.GetTypeOfFirstVar(ast.right, variables);
+                    goto TopOfSwitch; //repeat with found datatype.
+
+                case PezLexType._int:
+                    source.Append("int" + partial); //for now, we are only doing integers so this is the type.
+                    exp = ast.right; //This subset tree of the assignment ast is the expression/value.
+                    InOrderWrite(exp);
+                    ast.left.data.LType = PezLexType._int; //change identifer to int.
+                    variables.Add(ast.left.data); //add to variables table.
+                    break;
+                case PezLexType._float:
+                    source.Append("float" + partial); //for now, we are only doing integers so this is the type.
+                    exp = ast.right; //This subset tree of the assignment ast is the expression/value.
+                    InOrderWrite(exp);
+                    ast.left.data.LType = PezLexType._float;
+                    variables.Add(ast.left.data);
+                    break;
+                case PezLexType._double:
+                    source.Append("double" + partial); //for now, we are only doing integers so this is the type.
+                    exp = ast.right; //This subset tree of the assignment ast is the expression/value.
+                    InOrderWrite(exp);
+                    ast.left.data.LType = PezLexType._double;
+                    variables.Add(ast.left.data);
+                    break;
+                case PezLexType._string: //add strings BEFORE going to C if necessary.
+                    source.Append("char*" + " ");
+                    source.Append(ProcessAssignmentStringState(ast.right));
+                    ast.left.data.LType = PezLexType._string;
+                    variables.Add(ast.left.data);
+                    break;
+                default: throw new Exception("TranslateC:WriteAssignmentState:: PezLexType is not a C data type -> " + ast.data.LType.ToString());
+            }
             source.AppendLine(";");
+        }
+
+        private string ProcessAssignmentStringState(Node ast)
+        {
+            //where ast = string expression.
+            StringBuilder result = new StringBuilder();
+
+            //in-order traversal without recursion
+            List<string> tkns = new List<string>();
+            Stack<Node> ns = new Stack<Node>();
+            Node cur = ast;
+
+            while (cur != null)
+            {
+                ns.Push(cur);
+                cur = cur.left;
+            }
+
+            do
+            {
+                if(ns.Count > 0 && cur == null)
+                    cur = ns.Pop();
+                tkns.Add(cur.data.token.Replace("+", "").Replace("\"", ""));
+                cur = cur.right;
+            } while (ns.Count > 0 || cur != null);
+
+            result.Append('"');
+            for (int i = 0; i < tkns.Count; i++)
+                result.Append(tkns[i]);
+            result.Append('"');
+
+            return result.ToString();
         }
 
         /// <summary>
@@ -264,13 +337,26 @@ namespace pez.dispenser.cola
                 offset++;
             offset++; //we are now on the next instruction that *should* be scoped to the function.
 
-            //TODO: write function header to functions stringbuilder.
+            string ret = LevelOrderReturnWrite(fret); //void, int, (int, int)
+            string name = " " + func.left.data.token; //function name
+            string prms = LevelOrderParameterWrite(func, fnfo);
+
+            if (name.ToLower().Trim() != "main") //if not the main method
+            {
+                functions.Append(ret);
+                functions.Append(name);
+                functions.Append(prms);
+                functions.AppendLine(";");
+            }
+            else
+                name = name.ToLower(); //make sure that main is lowercase for C.
 
             //write function declaration
             AppendScope(scope);
-            source.Append(LevelOrderReturnWrite(fret)); // void, int, (int, int)
-            source.Append(" " + func.left.data.token); //function name
-            source.Append(LevelOrderParameterWrite(func, fnfo));
+            source.Append(ret); 
+            source.Append(name); 
+            source.Append(prms);
+            source.AppendLine("{");
 
             //writestate loop like conditional writestate loop except outside of main
             while (offset < astAndScope.Count && astAndScope[offset].Item2 == (scope + 1))
@@ -298,7 +384,7 @@ namespace pez.dispenser.cola
         private string LevelOrderParameterWrite(Node func, Node fnfo)
         {
             if (fnfo == null)
-                return "(){\n";
+                return "()";
 
             Queue<Node> nq = new Queue<Node>();
             nq.Enqueue(func.right);
@@ -319,7 +405,7 @@ namespace pez.dispenser.cola
                 result.Append(funcParams[i].token + ", ");
             }
             result.Remove(result.Length - 2, 2); //remove extra comma
-            result.AppendLine("){");
+            result.Append(")");
 
             return result.ToString();
         }

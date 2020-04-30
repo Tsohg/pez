@@ -190,7 +190,7 @@ namespace pez.ast
             while(offset < subset.Length)
             {
                 Lexeme token = subset[offset];
-                if (token.LType == PezLexType.id || token.LType == PezLexType._int) //id/type as operands
+                if (token.LType == PezLexType.id || IsType(token.LType)) //id/type as operands
                 {
                     output.Enqueue(token);
                     offset++;
@@ -269,6 +269,81 @@ namespace pez.ast
                 }
             }
             return ast;
+        }
+
+        public static bool IsType(PezLexType type)
+        {
+            string[] en = Enum.GetNames(typeof(PezLexType));
+            int t = (int)type;
+            int r = -1; //max range
+
+            for(int i = 0; i < en.Length; i++)
+            {
+                if (en[i] == Enum.GetName(typeof(PezLexType), PezLexType._double))
+                {
+                    r = i;
+                    break;
+                }
+            }
+            if (t < r) return true; //_int should ALWAYS be @ 0 in PezLexType.
+            else return false;
+        }
+
+        public static PezLexType FindLexDataType(Node root)
+        {
+            PezLexType type = PezLexType.unid;
+            Queue<Node> nq = new Queue<Node>();
+            nq.Enqueue(root);
+            int idTally = 0;
+            while (nq.Count > 0)
+            {
+                Node n = nq.Dequeue();
+
+                if (n.data.LType == PezLexType.id)
+                    idTally++;
+
+                if (IsType(n.data.LType))
+                    return n.data.LType;
+
+                if (n.left != null)
+                    nq.Enqueue(n.left);
+
+                if (n.right != null)
+                    nq.Enqueue(n.right);
+            }
+            if (idTally > 1) //identifier in the case that only variables are used in operations rather than types. should be > 1 because assignment ops always have at least 1 identifier.
+                return PezLexType.id;
+            Console.Out.WriteLine(type.ToString());
+            return type;
+        }
+
+        /// <summary>
+        /// Gets the data type of the very first variable in the expression. Might want to replace with a more sophisticated type checking system later.
+        /// Right now it finds the type of first variable and assume the rest of the expression lines up properly.
+        /// </summary>
+        /// <param name="exp"></param>
+        /// <param name="vars"></param>
+        /// <returns></returns>
+        public static PezLexType GetTypeOfFirstVar(Node exp, List<Lexeme> vars) //exp is right subtree of assignment operation ast.
+        {
+            PezLexType type = PezLexType.unid;
+            Queue<Node> nq = new Queue<Node>();
+            nq.Enqueue(exp);
+            while (nq.Count > 0)
+            {
+                Node n = nq.Dequeue();
+
+                for (int i = 0; i < vars.Count; i++)
+                    if (vars[i].token == n.data.token)
+                        return vars[i].LType;
+
+                if (n.left != null)
+                    nq.Enqueue(n.left);
+
+                if (n.right != null)
+                    nq.Enqueue(n.right);
+            }
+            return type;
         }
 
         //deprecated at the moment.

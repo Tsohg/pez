@@ -50,7 +50,7 @@ x = 10
 #		Keyword: func
 #		Function Name: funcName
 #		Parameters: a b c d e f g
-#	Below is a void function with no parameters. (Currently not implemented as of 4/9/2020)
+#	Below is a void function with no parameters.
 
 func HelloWorld
 	x = 9001

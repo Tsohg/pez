@@ -2,6 +2,13 @@
 ##	Pez syntax examples for all structures. Anything not commented out is valid pez code.
 ##
 
+##
+##	Todo for future: 
+##		Fix InOrderWrite for parenthesis expressions. Move InOrderWrite to BaseTranslate if possible.
+##		Enforce the first loop and WriteState in the BaseTranslate. Clean up BaseTranslate of any unnecessary code.
+##		Fix any issues related to parenthesis expression parsing.
+##
+
 #	Entry point of pez:
 #	Write func main and indent once to compile into something runnable in C or other languages. Pez will detect this function and grant an equivalent in other languages.
 #	Note: Some languages may require their main function to return something or accept parameters. More on that later when working on languages outside of C.

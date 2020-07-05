@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using pez.lex;
 using pez.dispenser.cola;
-using System.IO;
 
 namespace pez.ast
 {

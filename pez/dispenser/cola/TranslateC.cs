@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using pez.ast;
-using System.IO;
 using pez.lex;
 
 namespace pez.dispenser.cola
@@ -21,7 +18,7 @@ namespace pez.dispenser.cola
 
         public TranslateC(List<Tuple<Node, int>> astAndScope, string outPath) : base(astAndScope, outPath) { }
 
-        public override void Translate()
+        public override void Translate() //TODO: Enforce the first loop and WriteState in the BaseTranslate. Clean up BaseTranslate of any unnecessary code.
         {
             while (offset < astAndScope.Count)
                 WriteState(offset);
@@ -366,7 +363,7 @@ namespace pez.dispenser.cola
             source.AppendLine("}");
         }
 
-        private void InOrderWrite(Node ast) //TODO past May 1st: Redo for parentheses expressions.
+        private void InOrderWrite(Node ast) //TODO: Fix InOrderWrite for parenthesis expressions. Move InOrderWrite to BaseTranslate if possible.
         {
             if (ast == null) return;
 

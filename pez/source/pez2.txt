@@ -1,16 +1,15 @@
 int add(int num1, int num2);
 
 void main(){
-	int x = 3;
-	int y = 1;
-	int z = 2;
-	int a = x*y+z;
-	int t = 3*1+1*2;
-	int b = 1*2-3+4/5+6*7;
-	float f = 2.9+3.2;
-	char* d = "bananaramalolol yes i probably did it with odds as well";
+	int x = 1;
+	int y = 2;
+	int z = 3;
+	int a = (x * ((y + z) + x));
+	int f = (((1 + 2) * (2 * 3)) - ((x + y) / (x + (y * z))));
+	int t = (3 * (1 + (1 * 2)));
+	int b = ((((1 * 2) - 3) + (4 / 5)) + (6 * 7));
 }
 int add(int num1, int num2){
-	return num1+num2;
+	return (num1 + num2);
 }
 

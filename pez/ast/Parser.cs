@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using pez.lex;
 using pez.dispenser.cola;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace pez.ast
 {
@@ -80,7 +82,6 @@ namespace pez.ast
                 var linq = lexStream.Skip(offset).TakeWhile(termin => termin.LType != PezLexType.termin);
                 Lexeme[] subset = linq.ToArray();
 
-                //set offset to next token in the lex stream.
                 offset += subset.Length + 1;
 
                 if (subset.Length == 0)
@@ -91,8 +92,6 @@ namespace pez.ast
                 if (scope == subset.Length)
                     continue;
 
-                //ast subset
-                //  apply shunting yard
                 Queue<Lexeme> postfixNodes = ShuntingYard(subset.ToArray(), scope);
 
                 //apply algorithm to transform the output queue to an AST.
@@ -360,33 +359,86 @@ namespace pez.ast
             return type;
         }
 
-        //deprecated at the moment.
-        //private void TestAST(Node root)
-        //{
-        //    bool error = false;
+        /// <summary>
+        /// Returns heavily parenthesized mathematical expression from given assignment operation subtree.
+        /// </summary>
+        /// <param name="exp"></param>
+        /// <returns></returns>
+        public static string GetInfixExpression(Node exp)
+        {
+            if (exp.left == null && exp.right == null) //1 element referenced. expression is itself.
+                return exp.data.token;
+            if ((exp.left == null && exp.right != null) || exp.left != null && exp.right == null)
+                throw new Exception("Expression does not have the correct number of operators/operands.");
+            //TODO: might want to do more tree checking...
 
-        //    //visit self
-        //    if (root.data == null)
-        //        error = true;
+            string template = "(?L op ?R)";
+            string result = template;
+            Regex r = new Regex("op");
+            result = r.Replace(result, exp.data.token, 1); //*should be an op
+            //go left and right
+            GetInfixRecursive(ref result, template, "[?][L]", exp.left);
+            GetInfixRecursive(ref result, template, "[?][R]", exp.right);
 
-        //    while (true)
-        //    {
-        //        //visit left and right
-        //        if (root.left == null && root.right == null) //if both are null, we hit the last node.
-        //            break;
+            return result.ToString();
+        }
 
-        //        if (root.right == null) //if one is null, we have a weird tree.
-        //            error = true;
+        private static void GetInfixRecursive(ref string result, string template, string where, Node n)
+        {
+            Regex r = new Regex(where);
+            if (n.data.LType != PezLexType.op)
+            {
+                result = r.Replace(result, n.data.token, 1);
+                return;
+            }
+            result = r.Replace(result, template, 1);
+            r = new Regex("op");
+            result = r.Replace(result, n.data.token, 1);
+            GetInfixRecursive(ref result, template, "[?][L]", n.left);
+            GetInfixRecursive(ref result, template, "[?][R]", n.right);
+        }
 
-        //        if (root.left == null && !keywords.Contains(root.data.token)) //another keyword test.
-        //            error = true;
+        /// <summary>
+        /// Deprecated. Only here for debug purposes.
+        /// </summary>
+        /// <param name="ast"></param>
+        public static void InOrderWrite(Node ast, ref StringBuilder source) //TODO: Fix InOrderWrite for parenthesis expressions. Move InOrderWrite to BaseTranslate if possible.
+        {
+            if (ast == null) return;
 
-        //        if (error) throw new Exception("Weird Tree error on line: " + (astAndScope.Count + 1));
+            InOrderWrite(ast.left, ref source);
 
-        //        root = root.right;
-        //    }
-        //    if (error) throw new Exception("Weird Tree error on line: " + astAndScope.Count + 1);
-        //}
+            source.Append(ast.data.token);
+
+            InOrderWrite(ast.right, ref source);
+        }
+
+        /// <summary>
+        /// Returns an array of lexemes in level order using the given tree.
+        /// </summary>
+        /// <param name="ast"></param>
+        /// <returns></returns>
+        public static Lexeme[] LevelOrderTraversal(Node ast)
+        {
+            Queue<Node> nq = new Queue<Node>();
+            nq.Enqueue(ast);
+
+            List<Lexeme> lexstream = new List<Lexeme>();
+
+            while (nq.Count > 0)
+            {
+                Node n = nq.Dequeue();
+                lexstream.Add(n.data);
+
+                if (n.left != null)
+                    nq.Enqueue(n.left);
+
+                if (n.right != null)
+                    nq.Enqueue(n.right);
+            }
+
+            return lexstream.ToArray();
+        }
 
         /// <summary>
         /// Scope sled. Wheeeee!

@@ -1,14 +1,11 @@
 ﻿func main #For C code, this is REQUIRED to run.
-	x = 3
-	y = 1
-	z = 2
-	a = x * (y+z) #We need to simplify for expressions too.
-
-	t = 3 * (1+(1*2)) #We need to simplify this before translating it to C. UNLESS it is a variable expression?
-	b = 1 * 2 - 3 + 4 / 5 + 6 * 7
-	f = 2.9 + 3.2
-	d = "banana" + "rama" + "lolol" + " yes" + " i probably" + " did it" + " with odds as well"
-	#c + a - b + c #is this even valid C?
+	x = 1
+	y = 2
+	z = 3
+	a = x * (y+z+x) # (x * ((y + z) + x))
+	f = (1+2)*(2*3)-(x+y)/(x+y*z) # (((1 + 2) * (2 * 3)) - ((x + y) / (x + (y * z))))
+	t = 3 * (1+(1*2)) # (3 * (1 + (1 * 2)))
+	b = 1 * 2 - 3 + 4 / 5 + 6 * 7 # ((((1 * 2) - 3) + (4 / 5)) + (6 * 7))
 
 func add num1 num2
 fnfo int int

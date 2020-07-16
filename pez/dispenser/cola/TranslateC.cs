@@ -8,20 +8,21 @@ namespace pez.dispenser.cola
 {
     /// <summary>
     /// Translates a pez program to C.
+    /// TODO: Move traversals to ast?
     /// </summary>
     class TranslateC : BaseTranslate
     {
         private StringBuilder functions = new StringBuilder(); //function definitions for C.
         private StringBuilder source = new StringBuilder(); //Currently i will just dump the contents of the code inside the main function of a C program.
-        private int offset = 0;
+        private int statementNum = 0; //Line # in terms of non-commented statements. In other words, it does not count comments and other newline whitespace. Only active statement.
         private List<Lexeme> variables = new List<Lexeme>();
 
         public TranslateC(List<Tuple<Node, int>> astAndScope, string outPath) : base(astAndScope, outPath) { }
 
         public override void Translate() //TODO: Enforce the first loop and WriteState in the BaseTranslate. Clean up BaseTranslate of any unnecessary code.
         {
-            while (offset < astAndScope.Count)
-                WriteState(offset);
+            while (statementNum < astAndScope.Count)
+                WriteState(statementNum);
             //source.Append("}"); //ending brace for void main()
             StringBuilder c = new StringBuilder();
             c.AppendLine(functions.ToString());
@@ -48,7 +49,7 @@ namespace pez.dispenser.cola
             {
                 case "=": //assignment
                     WriteAssignmentState(ast, scope);
-                    offset++;
+                    statementNum++;
                     break;
                 case "if": //if statement
                 case "lpw": //while loop
@@ -67,13 +68,13 @@ namespace pez.dispenser.cola
                 case "*":
                 case "/":
                     WriteVarOpState(ast, scope);
-                    offset++;
+                    statementNum++;
                     break;
 
                 //Return statements
                 case "return":
                     WriteReturnState(ast, scope);
-                    offset++;
+                    statementNum++;
                     break;
 
                 case "func":
@@ -85,30 +86,30 @@ namespace pez.dispenser.cola
                     short flags = 0;
 
                     //Should probably make this more efficient.
-                    if(astAndScope[offset + 1].Item1.data.token == "fnfo") //parameter info
+                    if(astAndScope[statementNum + 1].Item1.data.token == "fnfo") //parameter info
                     {
                         flags |= 1;
-                        if (astAndScope[offset + 2].Item1.data.token == "fret") //return info with parameter info
+                        if (astAndScope[statementNum + 2].Item1.data.token == "fret") //return info with parameter info
                         {
                             flags |= 2;
-                            if (scope == astAndScope[offset + 2].Item2)
+                            if (scope == astAndScope[statementNum + 2].Item2)
                                 flags |= 8;
                         }
                         //check scope of fnfo
-                        if (scope == astAndScope[offset + 1].Item2)
+                        if (scope == astAndScope[statementNum + 1].Item2)
                             flags |= 4;
                     }
-                    else if(astAndScope[offset + 1].Item1.data.token == "fret") //return info but no params.
+                    else if(astAndScope[statementNum + 1].Item1.data.token == "fret") //return info but no params.
                     {
                         flags |= 2;
-                        if(astAndScope[offset + 2].Item1.data.token == "fnfo") //parameter info with return info.
+                        if(astAndScope[statementNum + 2].Item1.data.token == "fnfo") //parameter info with return info.
                         {
                             flags |= 1;
-                            if (scope == astAndScope[offset + 1].Item2)
+                            if (scope == astAndScope[statementNum + 1].Item2)
                                 flags |= 4;
                         }
                         //check scope of fret
-                        if (scope == astAndScope[offset + 2].Item2)
+                        if (scope == astAndScope[statementNum + 2].Item2)
                             flags |= 8;
                     }
 
@@ -124,7 +125,8 @@ namespace pez.dispenser.cola
         {
             AppendScope(scope);
             source.Append(ast.data.token + " "); //return
-            InOrderWrite(ast.right); //right subtree of ast is in-order expression.
+            //Parser.InOrderWrite(ast.right, ref source); //right subtree of ast is in-order expression.
+            source.Append(Parser.GetInfixExpression(ast.right));
             source.AppendLine(";");
         }
 
@@ -138,7 +140,8 @@ namespace pez.dispenser.cola
         {
             //TODO past May 1st: implement a way to ensure that the variable has already been declared or defined within a particular scope.
             AppendScope(scope);
-            InOrderWrite(ast); //this tree has no key.
+            //Parser.InOrderWrite(ast, ref source); //this tree has no key.
+            source.Append(Parser.GetInfixExpression(ast));
             source.AppendLine(";");
         }
 
@@ -166,21 +169,21 @@ namespace pez.dispenser.cola
                 case PezLexType._int:
                     source.Append("int" + partial); //for now, we are only doing integers so this is the type.
                     exp = ast.right; //This subset tree of the assignment ast is the expression/value.
-                    InOrderWrite(exp);
+                    source.Append(Parser.GetInfixExpression(exp));
                     ast.left.data.LType = PezLexType._int; //change identifer to int.
                     variables.Add(ast.left.data); //add to variables table.
                     break;
                 case PezLexType._float:
                     source.Append("float" + partial); //for now, we are only doing integers so this is the type.
                     exp = ast.right; //This subset tree of the assignment ast is the expression/value.
-                    InOrderWrite(exp);
+                    source.Append(Parser.GetInfixExpression(exp));
                     ast.left.data.LType = PezLexType._float;
                     variables.Add(ast.left.data);
                     break;
                 case PezLexType._double:
                     source.Append("double" + partial); //for now, we are only doing integers so this is the type.
                     exp = ast.right; //This subset tree of the assignment ast is the expression/value.
-                    InOrderWrite(exp);
+                    source.Append(Parser.GetInfixExpression(exp));
                     ast.left.data.LType = PezLexType._double;
                     variables.Add(ast.left.data);
                     break;
@@ -190,9 +193,10 @@ namespace pez.dispenser.cola
                     ast.left.data.LType = PezLexType._string;
                     variables.Add(ast.left.data);
                     break;
-                default: throw new Exception("TranslateC:WriteAssignmentState:: PezLexType is not a C data type -> " + ast.data.LType.ToString());
+                default: throw new Exception("TranslateC:WriteAssignmentState:: PezLexType is not a C primitive data type or used variable is not declared on Statement Number: " + statementNum);
             }
             source.AppendLine(";");
+            //string test = Parser.GetInfixExpression(ast.right);
         }
 
         private string ProcessAssignmentStringState(Node ast)
@@ -253,11 +257,11 @@ namespace pez.dispenser.cola
             temp = temp.right;
             source.Append(temp.left.data.token + " " + temp.data.token + " " + temp.right.data.token); //expression
             source.Append("){\n");
-            offset++; //next line after conditional expression.
+            statementNum++; //next line after conditional expression.
             //write until out of scope.
 
-            while (offset < astAndScope.Count && astAndScope[offset].Item2 == (scope + 1))
-                WriteState(offset);
+            while (statementNum < astAndScope.Count && astAndScope[statementNum].Item2 == (scope + 1))
+                WriteState(statementNum);
 
             AppendScope(scope);
             source.AppendLine("}");
@@ -272,9 +276,9 @@ namespace pez.dispenser.cola
             source.AppendLine("for(int " + i +  " = " + (int.Parse(temp.left.data.token) - 1) + "; " + i + " < " + temp.right.data.token + "; " + i + "++){"); //expression.
 
             //same as WriteConditional to write within scope.
-            offset++;
-            while (offset < astAndScope.Count && astAndScope[offset].Item2 == (scope + 1));
-                WriteState(offset);
+            statementNum++;
+            while (statementNum < astAndScope.Count && astAndScope[statementNum].Item2 == (scope + 1));
+                WriteState(statementNum);
 
             AppendScope(scope);
             source.AppendLine("}");
@@ -288,9 +292,9 @@ namespace pez.dispenser.cola
             source.AppendLine("else{");
 
             //same as WriteConditional to write within scope.
-            offset++;
-            while (offset < astAndScope.Count && astAndScope[offset].Item2 == (scope + 1))
-                WriteState(offset);
+            statementNum++;
+            while (statementNum < astAndScope.Count && astAndScope[statementNum].Item2 == (scope + 1))
+                WriteState(statementNum);
 
             AppendScope(scope);
             source.AppendLine("}");
@@ -313,26 +317,26 @@ namespace pez.dispenser.cola
             Node fret = null;
             if ((flags & 1) == 1) //it's either in pos1 or pos2
             {
-                if (astAndScope[offset + 1].Item1.data.token == "fnfo")
-                    fnfo = astAndScope[offset + 1].Item1;
+                if (astAndScope[statementNum + 1].Item1.data.token == "fnfo")
+                    fnfo = astAndScope[statementNum + 1].Item1;
                 else
-                    fnfo = astAndScope[offset + 2].Item1;
+                    fnfo = astAndScope[statementNum + 2].Item1;
             }
 
             if ((flags & 2) == 2) //it's either in pos1 or pos2
             {
-                if (astAndScope[offset + 1].Item1.data.token == "fret")
-                    fret = astAndScope[offset + 1].Item1;
+                if (astAndScope[statementNum + 1].Item1.data.token == "fret")
+                    fret = astAndScope[statementNum + 1].Item1;
                 else
-                    fret = astAndScope[offset + 2].Item1;
+                    fret = astAndScope[statementNum + 2].Item1;
             }
 
             //Only modify offset at end here for clarity.
             if ((flags & 1) == 1)
-                offset++;
+                statementNum++;
             if ((flags & 2) == 2)
-                offset++;
-            offset++; //we are now on the next instruction that *should* be scoped to the function.
+                statementNum++;
+            statementNum++; //we are now on the next instruction that *should* be scoped to the function.
 
             string ret = LevelOrderReturnWrite(fret); //void, int, (int, int)
             string name = " " + func.left.data.token; //function name
@@ -356,22 +360,11 @@ namespace pez.dispenser.cola
             source.AppendLine("{");
 
             //writestate loop like conditional writestate loop except outside of main
-            while (offset < astAndScope.Count && astAndScope[offset].Item2 == (scope + 1))
-                WriteState(offset);
+            while (statementNum < astAndScope.Count && astAndScope[statementNum].Item2 == (scope + 1))
+                WriteState(statementNum);
 
             AppendScope(scope);
             source.AppendLine("}");
-        }
-
-        private void InOrderWrite(Node ast) //TODO: Fix InOrderWrite for parenthesis expressions. Move InOrderWrite to BaseTranslate if possible.
-        {
-            if (ast == null) return;
-
-            InOrderWrite(ast.left);
-
-            source.Append(ast.data.token);
-
-            InOrderWrite(ast.right);
         }
 
         /// <summary>
@@ -383,13 +376,8 @@ namespace pez.dispenser.cola
             if (fnfo == null)
                 return "()";
 
-            Queue<Node> nq = new Queue<Node>();
-            nq.Enqueue(func.right);
-            Lexeme[] funcParams = LevelOrderTraversal(nq); //right subtree of func = parameter list.
-
-            nq = new Queue<Node>();
-            nq.Enqueue(fnfo.right);
-            Lexeme[] funcInfo = LevelOrderTraversal(nq); //same as function declaration
+            Lexeme[] funcParams = Parser.LevelOrderTraversal(func.right); //right subtree of func = parameter list.
+            Lexeme[] funcInfo = Parser.LevelOrderTraversal(fnfo.right); //same as function declaration
 
             StringBuilder result = new StringBuilder();
 
@@ -423,29 +411,6 @@ namespace pez.dispenser.cola
             result.Append(fret.right.data.token);
 
             return result.ToString();
-        }
-        /// <summary>
-        /// Returns an array of lexemes in level order.
-        /// </summary>
-        /// <param name="ast"></param>
-        /// <returns></returns>
-        private Lexeme[] LevelOrderTraversal(Queue<Node> nq)
-        {
-            List<Lexeme> lexstream = new List<Lexeme>();
-
-            while(nq.Count > 0)
-            {
-                Node n = nq.Dequeue();
-                lexstream.Add(n.data);
-
-                if (n.left != null)
-                    nq.Enqueue(n.left);
-
-                if (n.right != null)
-                    nq.Enqueue(n.right);
-            }
-
-            return lexstream.ToArray();
         }
     }
 }
